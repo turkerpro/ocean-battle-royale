@@ -10,10 +10,6 @@ permissions:
   pages: write
   id-token: write
 
-env:
-  UNITY_VERSION: 6000.0.32f1
-  UNITY_IMAGE: unityci/editor:ubuntu-6000.0.32f1-webgl-3
-
 jobs:
   build-webgl:
     name: Build WebGL
@@ -33,55 +29,24 @@ jobs:
           docker image prune -af
           df -h
 
-      - name: Write Unity license to runner
-        env:
-          UNITY_LICENSE_CONTENT: ${{ secrets.UNITY_LICENSE }}
-        run: |
-          mkdir -p /home/runner/.config/unity3d/Unity/licenses
-          echo "$UNITY_LICENSE_CONTENT" > /home/runner/.config/unity3d/Unity/licenses/UnityEntitlementLicense.xml
-          echo "License written: $(wc -c < /home/runner/.config/unity3d/Unity/licenses/UnityEntitlementLicense.xml) bytes"
-
-      - name: Pull Unity Docker image
-        run: docker pull ${{ env.UNITY_IMAGE }}
+      - name: Cache Unity Library
+        uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-WebGL-${{ hashFiles('Assets/**', 'Packages/manifest.json') }}
+          restore-keys: Library-WebGL-
 
       - name: Build WebGL
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/github/workspace \
-            -v /home/runner/.config/unity3d:/root/.config/unity3d \
-            -w /github/workspace \
-            -e UNITY_EMAIL="${{ secrets.UNITY_EMAIL }}" \
-            -e UNITY_PASSWORD="${{ secrets.UNITY_PASSWORD }}" \
-            ${{ env.UNITY_IMAGE }} \
-            /bin/bash -c '
-              set -ex
-
-              echo "=== License file ==="
-              ls -la /root/.config/unity3d/Unity/licenses/
-              wc -c /root/.config/unity3d/Unity/licenses/UnityEntitlementLicense.xml
-
-              echo "=== Unity Version ==="
-              /opt/unity/Editor/Unity -batchmode -nographics -version -logFile /dev/stdout || true
-
-              echo "=== Building WebGL ==="
-              xvfb-run --auto-servernum --server-args="-screen 0 640x480x24" \
-                /opt/unity/Editor/Unity \
-                -batchmode \
-                -nographics \
-                -quit \
-                -logFile /dev/stdout \
-                -username "$UNITY_EMAIL" \
-                -password "$UNITY_PASSWORD" \
-                -projectPath /github/workspace \
-                -buildTarget WebGL \
-                -executeMethod OceanBattleRoyale.Editor.BuildScript.BuildWebGL
-
-              echo "=== Build output ==="
-              ls -laR build/WebGL/
-            '
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: WebGL
+          unityVersion: 6000.0.32f1
 
       - name: Upload WebGL Build
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: webgl-build
