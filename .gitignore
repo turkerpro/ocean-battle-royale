@@ -87,11 +87,10 @@ Thumbs.db
 /[Aa]ssets/_Project/Resources/PhotonAppSettings.asset
 /[Aa]ssets/_Project/Resources/PlayFabSettings.asset
 
-# Unity Package Manager
-/[Pp]ackages/
-/[Pp]ackage-lock.json
-!/[Pp]ackages/manifest.json
-!/[Pp]ackages/packages-lock.json
+# Unity Package Manager - ignore downloaded packages but keep manifest/lock
+/[Pp]ackages/com.unity/
+/[Pp]ackages/modules/
+/[Pp]ackages/manifest.json.meta
 
 # Logs
 *.log

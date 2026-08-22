@@ -1,4 +1,6 @@
 using UnityEngine;
+using OceanBattleRoyale.Network;
+using OceanBattleRoyale.Ship;
 
 namespace OceanBattleRoyale.World
 {

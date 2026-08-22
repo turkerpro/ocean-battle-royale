@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using OceanBattleRoyale.UI;
 
 namespace OceanBattleRoyale.Network
 {
