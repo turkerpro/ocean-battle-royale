@@ -36,17 +36,27 @@ jobs:
       - name: Pull Unity Docker image
         run: docker pull ${{ env.UNITY_IMAGE }}
 
-      - name: Activate & Build WebGL
+      - name: Build WebGL
+        env:
+          UNITY_LICENSE_B64: ${{ secrets.UNITY_LICENSE }}
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/github/workspace \
             -w /github/workspace \
             -e UNITY_EMAIL="${{ secrets.UNITY_EMAIL }}" \
             -e UNITY_PASSWORD="${{ secrets.UNITY_PASSWORD }}" \
+            -e UNITY_LICENSE_B64="${{ secrets.UNITY_LICENSE }}" \
             ${{ env.UNITY_IMAGE }} \
             /bin/bash -c '
+              set -e
+
+              echo "=== Writing Unity license ==="
+              mkdir -p /root/.config/unity3d/Unity/licenses
+              echo "$UNITY_LICENSE_B64" | base64 -d > /root/.config/unity3d/Unity/licenses/UnityEntitlementLicense.xml
+              echo "License written: $(wc -c < /root/.config/unity3d/Unity/licenses/UnityEntitlementLicense.xml) bytes"
+
               echo "=== Unity Version ==="
-              /opt/unity/Editor/Unity -version || true
+              /opt/unity/Editor/Unity -batchmode -nographics -version -logFile /dev/stdout || true
 
               echo "=== Activating license ==="
               xvfb-run --auto-servernum --server-args="-screen 0 640x480x24" \
@@ -56,8 +66,7 @@ jobs:
                 -quit \
                 -logFile /dev/stdout \
                 -username "$UNITY_EMAIL" \
-                -password "$UNITY_PASSWORD" \
-                || echo "Activation step completed (may have warnings)"
+                -password "$UNITY_PASSWORD" || true
 
               echo "=== Building WebGL ==="
               xvfb-run --auto-servernum --server-args="-screen 0 640x480x24" \
@@ -70,12 +79,12 @@ jobs:
                 -password "$UNITY_PASSWORD" \
                 -projectPath /github/workspace \
                 -buildTarget WebGL \
-                -executeMethod OceanBattleRoyale.Editor.BuildScript.BuildWebGL \
-                || true
+                -executeMethod OceanBattleRoyale.Editor.BuildScript.BuildWebGL
 
               echo "=== Build output ==="
-              ls -la build/WebGL/ 2>/dev/null || echo "No build output found"
+              ls -laR build/WebGL/
             '
+
       - name: Upload WebGL Build
         uses: actions/upload-artifact@v4
         with:
