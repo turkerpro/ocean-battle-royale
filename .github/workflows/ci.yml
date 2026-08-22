@@ -3,34 +3,32 @@ name: CI/CD
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
 
 env:
   UNITY_VERSION: 6000.0.32f1
 
 jobs:
   build-webgl:
-    name: Build WebGL + Deploy to GitHub Pages
+    name: Build WebGL
     runs-on: ubuntu-latest
     timeout-minutes: 120
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          lfs: true
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          docker image prune -af
+          df -h
 
       - name: Install Unity
         uses: game-ci/unity-installer@v2
         with:
           unityVersion: ${{ env.UNITY_VERSION }}
-          cacheKey: unity-${{ env.UNITY_VERSION }}-${{ hashFiles('Packages/manifest.json') }}
 
       - name: Build WebGL
         uses: game-ci/unity-builder@v2
@@ -41,76 +39,38 @@ jobs:
           targetPlatform: WebGL
           allowDirtyBuild: true
 
+      - name: Upload WebGL Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: webgl-build
+          path: build/WebGL
+          retention-days: 14
+
+  deploy-pages:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: build-webgl
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download WebGL Build
+        uses: actions/download-artifact@v4
+        with:
+          name: webgl-build
+          path: webgl
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload artifact
+      - name: Upload to Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: build/WebGL/WebGL
+          path: webgl
 
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
-  build-android:
-    name: Build Android
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          lfs: true
-
-      - name: Install Unity
-        uses: game-ci/unity-installer@v2
-        with:
-          unityVersion: ${{ env.UNITY_VERSION }}
-          cacheKey: unity-${{ env.UNITY_VERSION }}-${{ hashFiles('Packages/manifest.json') }}
-
-      - name: Build Android
-        uses: game-ci/unity-builder@v2
-        env:
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-        with:
-          projectPath: .
-          targetPlatform: Android
-          allowDirtyBuild: true
-
-      - name: Upload Android Build
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-build
-          path: build/Android
-
-  build-windows:
-    name: Build Windows
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          lfs: true
-
-      - name: Install Unity
-        uses: game-ci/unity-installer@v2
-        with:
-          unityVersion: ${{ env.UNITY_VERSION }}
-          cacheKey: unity-${{ env.UNITY_VERSION }}-${{ hashFiles('Packages/manifest.json') }}
-
-      - name: Build Windows
-        uses: game-ci/unity-builder@v2
-        env:
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-        with:
-          projectPath: .
-          targetPlatform: StandaloneWindows64
-          allowDirtyBuild: true
-
-      - name: Upload Windows Build
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-build
-          path: build/StandaloneWindows64
