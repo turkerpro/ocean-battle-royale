@@ -9,23 +9,22 @@
 body{overflow:hidden;background:#000;font-family:Arial,sans-serif}
 canvas{display:block}
 #ui{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
-#menu{text-align:center;padding-top:20vh;color:#fff}
-#menu h1{font-size:48px;text-shadow:0 0 20px rgba(0,150,255,.8);margin-bottom:10px}
+#menu{text-align:center;padding-top:20vh;color:#fff;text-shadow:0 0 20px rgba(0,150,255,.8)}
+#menu h1{font-size:48px;margin-bottom:10px}
 #menu p{color:#8cf;font-size:18px;margin-bottom:30px}
-#menu button{pointer-events:all;padding:15px 50px;font-size:22px;border:none;border-radius:8px;cursor:pointer;margin:5px;font-weight:bold}
-#playBtn{background:#1a6;color:#fff}
-#playBtn:hover{background:#2b7}
-#fsBtn{background:#338;color:#fff}
-#fsBtn:hover{background:#44a}
+#menu button{pointer-events:all;padding:15px 50px;font-size:22px;border:none;border-radius:8px;cursor:pointer;margin:5px;font-weight:bold;transition:transform .1s}
+#playBtn{background:#1a6;color:#fff}#playBtn:hover{background:#2b7;transform:scale(1.05)}
+#fsBtn{background:#338;color:#fff}#fsBtn:hover{background:#44a;transform:scale(1.05)}
 #hud{display:none}
-#hp{position:absolute;bottom:20px;left:20px;color:#0f0;font-size:16px}
-#xp{position:absolute;bottom:40px;left:20px;color:#ff0;font-size:16px}
-#level{position:absolute;bottom:60px;left:20px;color:#0ff;font-size:20px;font-weight:bold}
-#info{position:absolute;top:10px;left:20px;color:rgba(255,255,255,.6);font-size:13px}
-#kills{position:absolute;top:10px;right:20px;color:#f44;font-size:16px}
-#alive{position:absolute;top:30px;right:20px;color:#aaa;font-size:14px}
-#weapon{position:absolute;bottom:20px;right:20px;color:#fff;font-size:16px}
-#msg{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:40px;font-weight:bold;text-shadow:0 0 15px #f00;display:none;text-align:center}
+.hud-el{position:absolute;font-size:16px;font-weight:bold;text-shadow:0 0 5px #000}
+#hp{position:absolute;bottom:20px;left:20px;color:#0f0}
+#xp{position:absolute;bottom:40px;left:20px;color:#ff0}
+#level{position:absolute;bottom:60px;left:20px;color:#0ff;font-size:20px}
+#info{position:absolute;top:10px;left:20px;color:rgba(255,255,255,.6);font-size:13px;font-weight:normal}
+#kills{position:absolute;top:10px;right:20px;color:#f44}
+#alive{position:absolute;top:30px;right:20px;color:#aaa}
+#weapon{position:absolute;bottom:20px;right:20px;color:#fff}
+#msg{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:40px;font-weight:bold;text-shadow:0 0 15px #f00;display:none;text-align:center;white-space:pre-line}
 #minimap{position:absolute;bottom:20px;right:20px;width:160px;height:160px;border:2px solid rgba(255,255,255,.3);border-radius:5px;overflow:hidden}
 #minimap canvas{width:100%;height:100%}
 </style>
@@ -39,13 +38,13 @@ canvas{display:block}
     <button id="fsBtn">TAM EKRAN</button>
   </div>
   <div id="hud">
-    <div id="hp">HP: 100/100</div>
+    <div id="hp">HP: 80/80</div>
     <div id="xp">XP: 0/100</div>
     <div id="level">SEVIYE 1</div>
-    <div id="info">WASD: Hareket | Fare: Nisangah | TIK: Ates | SPACE: Mayin | 1-3: Silah Degis</div>
+    <div id="info">WASD: Hareket | Fare: Nisangah | TIK: Ates | SPACE: Mayin | 1-3: Gemi Sec</div>
     <div id="kills">Kills: 0</div>
     <div id="alive">Alive: 31</div>
-    <div id="weapon">[1] TOP</div>
+    <div id="weapon">[1] TICAIK</div>
     <div id="msg"></div>
     <div id="minimap"><canvas id="minimapCanvas" width="160" height="160"></canvas></div>
   </div>
@@ -53,12 +52,10 @@ canvas{display:block}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script id="water-vs" type="x-shader/x-vertex">
 uniform float uTime;
-varying vec2 vUv;
 varying float vElevation;
 varying vec3 vWorldPos;
 
 void main(){
-  vUv = uv;
   vec3 pos = position;
   float w1 = sin(pos.x*0.03 + uTime*0.8)*2.5;
   float w2 = cos(pos.y*0.04 + uTime*0.6)*1.8;
@@ -72,7 +69,6 @@ void main(){
 </script>
 <script id="water-fs" type="x-shader/x-fragment">
 uniform float uTime;
-varying vec2 vUv;
 varying float vElevation;
 varying vec3 vWorldPos;
 
@@ -82,12 +78,10 @@ void main(){
   vec3 shallow = vec3(0.05, 0.30, 0.50);
   vec3 foam    = vec3(0.70, 0.85, 0.95);
 
-  float h = (vElevation + 3.0) / 6.0;
-  h = clamp(h, 0.0, 1.0);
-
+  float h = clamp((vElevation + 3.0) / 6.0, 0.0, 1.0);
   vec3 col = mix(deep, mid, smoothstep(0.0, 0.4, h));
   col = mix(col, shallow, smoothstep(0.4, 0.75, h));
-  col = mix(col, foam, smoothstep(0.8, 1.0, h));
+  col = mix(col, foam, smoothstep(0.85, 1.0, h));
 
   float dist = length(vWorldPos.xz) * 0.001;
   col = mix(col, deep, smoothstep(0.3, 0.8, dist));
@@ -110,494 +104,431 @@ const CFG = {
 };
 
 let scene, camera, renderer, clock;
-let player, bots = [], bullets = [], mines = [], particles = [];
-let keys = {}, mouse = {x:0,y:0,down:false}, gameStarted = false, gameOver = false;
-let kills = 0, level = 1, xp = 0, xpNeeded = 100, weaponIdx = 0;
-let fireCooldown = 0, mineCooldown = 0;
+let player, bots=[], bullets=[], mines=[], particles=[];
+let keys={}, mouse={x:0,y:0,down:false}, gameStarted=false, gameOver=false;
+let kills=0, level=1, xp=0, xpNeeded=100, weaponIdx=0;
+let fireCooldown=0, mineCooldown=0;
 let waterMesh;
 
-const hpEl = document.getElementById('hp');
-const xpEl = document.getElementById('xp');
-const levelEl = document.getElementById('level');
-const killsEl = document.getElementById('kills');
-const aliveEl = document.getElementById('alive');
-const weaponEl = document.getElementById('weapon');
-const msgEl = document.getElementById('msg');
-const hudEl = document.getElementById('hud');
-const menuEl = document.getElementById('menu');
-const mmCanvas = document.getElementById('minimapCanvas');
-const mmCtx = mmCanvas.getContext('2d');
+const $ = id => document.getElementById(id);
+const hpEl=$('hp'), xpEl=$('xp'), levelEl=$('level'), killsEl=$('kills'),
+      aliveEl=$('alive'), weaponEl=$('weapon'), msgEl=$('msg'),
+      hudEl=$('hud'), menuEl=$('menu');
+const mmCanvas=$('minimapCanvas'), mmCtx=mmCanvas.getContext('2d');
 
-document.getElementById('playBtn').onclick = startGame;
-document.getElementById('fsBtn').onclick = () => {
+$('playBtn').onclick=()=>{ startGame(); };
+$('fsBtn').onclick=()=>{
   if(!document.fullscreenElement) document.documentElement.requestFullscreen();
   else document.exitFullscreen();
 };
-document.addEventListener('keydown', e => keys[e.code] = true);
-document.addEventListener('keyup', e => keys[e.code] = false);
-document.addEventListener('mousemove', e => { mouse.x = (e.clientX/window.innerWidth)*2-1; mouse.y = -(e.clientY/window.innerHeight)*2+1; });
-document.addEventListener('mousedown', e => { if(e.button===0) mouse.down = true; });
-document.addEventListener('mouseup', e => { if(e.button===0) mouse.down = false; });
-document.addEventListener('contextmenu', e => e.preventDefault());
 
+document.addEventListener('keydown',e=>keys[e.code]=true);
+document.addEventListener('keyup',e=>keys[e.code]=false);
+document.addEventListener('mousemove',e=>{
+  mouse.x=(e.clientX/window.innerWidth)*2-1;
+  mouse.y=-(e.clientY/window.innerHeight)*2+1;
+});
+document.addEventListener('mousedown',e=>{ if(e.button===0) mouse.down=true; });
+document.addEventListener('mouseup',e=>{ if(e.button===0) mouse.down=false; });
+document.addEventListener('contextmenu',e=>e.preventDefault());
+
+// --- MATH HELPERS ---
+const rand=Math.random, TAU=Math.PI*2;
+function rm(a,b){return a+rand()*(b-a)}
+function rc(a){return a[Math.floor(rand()*a.length)]}
+
+// --- INIT ---
 function init(){
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0a1628);
-  scene.fog = new THREE.Fog(0x0a1628, 150, 500);
+  scene=new THREE.Scene();
+  scene.background=new THREE.Color(0x0a1628);
+  scene.fog=new THREE.Fog(0x0a1628, 200, 600);
 
-  camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 2000);
-  camera.position.set(0, 60, -40);
-  camera.lookAt(0, 0, 0);
+  camera=new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 2000);
+  camera.position.set(0,60,-40);
+  camera.lookAt(0,0,0);
 
-  renderer = new THREE.WebGLRenderer({antialias:true});
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer=new THREE.WebGLRenderer({antialias:true});
+  renderer.setSize(window.innerWidth,window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.shadowMap.enabled=true;
+  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   document.body.appendChild(renderer.domElement);
 
-  const amb = new THREE.AmbientLight(0x223344, 0.6);
-  scene.add(amb);
-  const sun = new THREE.DirectionalLight(0xffeedd, 0.8);
-  sun.position.set(100, 150, 50);
-  sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
-  sun.shadow.camera.left = -300;
-  sun.shadow.camera.right = 300;
-  sun.shadow.camera.top = 300;
-  sun.shadow.camera.bottom = -300;
+  scene.add(new THREE.AmbientLight(0x223344,0.6));
+  const sun=new THREE.DirectionalLight(0xffeedd,0.8);
+  sun.position.set(100,150,50);
+  sun.castShadow=true;
+  sun.shadow.mapSize.set(2048,2048);
+  const sh=sun.shadow.camera;
+  sh.left=sh.bottom=-300; sh.right=sh.top=300;
   scene.add(sun);
 
-  const waterGeo = new THREE.PlaneGeometry(CFG.worldSize*2, CFG.worldSize*2, 200, 200);
-  const waterMat = new THREE.ShaderMaterial({
-    uniforms: {
-      uTime: { value: 0 }
-    },
-    vertexShader: document.getElementById('water-vs').textContent,
-    fragmentShader: document.getElementById('water-fs').textContent,
-    transparent: true,
-    side: THREE.DoubleSide
+  // Water (custom shader)
+  const wGeo=new THREE.PlaneGeometry(CFG.worldSize*2,CFG.worldSize*2,200,200);
+  const wMat=new THREE.ShaderMaterial({
+    uniforms:{uTime:{value:0}},
+    vertexShader:document.getElementById('water-vs').textContent,
+    fragmentShader:document.getElementById('water-fs').textContent,
+    transparent:true
   });
-  waterMesh = new THREE.Mesh(waterGeo, waterMat);
-  waterMesh.rotation.x = -Math.PI/2;
-  waterMesh.position.y = -1;
+  waterMesh=new THREE.Mesh(wGeo,wMat);
+  waterMesh.rotation.x=-Math.PI/2;
+  waterMesh.position.y=-1;
   scene.add(waterMesh);
 
-  const boundGeo = new THREE.RingGeometry(CFG.worldSize-5, CFG.worldSize, 64);
-  const boundMat = new THREE.MeshBasicMaterial({color:0xff2200, transparent:true, opacity:0.5, side:THREE.DoubleSide});
-  const boundary = new THREE.Mesh(boundGeo, boundMat);
-  boundary.rotation.x = -Math.PI/2;
-  boundary.position.y = 1;
-  scene.add(boundary);
-
-  clock = new THREE.Clock();
-  window.addEventListener('resize', onResize);
+  clock=new THREE.Clock();
+  window.addEventListener('resize',onResize);
   onResize();
   animate();
 }
-
 function onResize(){
-  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.aspect=window.innerWidth/window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setSize(window.innerWidth,window.innerHeight);
 }
 
-function createShip(type, isPlayer){
-  const s = CFG.shipTypes[type];
-  const group = new THREE.Group();
+// --- SHIP CREATION ---
+function createShip(type,isPlayer){
+  const s=CFG.shipTypes[type];
+  const g=new THREE.Group();
+  const sz=s.size;
 
-  const hullGeo = new THREE.BoxGeometry(2*s.size, 0.6*s.size, 5*s.size);
-  const hullMat = new THREE.MeshPhongMaterial({color: isPlayer ? 0x22aa44 : s.color});
-  const hull = new THREE.Mesh(hullGeo, hullMat);
-  hull.castShadow = true;
-  hull.position.y = 0.3*s.size;
-  group.add(hull);
+  // Hull
+  const hull=new THREE.Mesh(
+    new THREE.BoxGeometry(2*sz,0.6*sz,5*sz),
+    new THREE.MeshPhongMaterial({color:isPlayer?0x22aa44:s.color})
+  );
+  hull.position.y=0.3*sz;
+  hull.castShadow=true;
+  g.add(hull);
 
-  const deckGeo = new THREE.BoxGeometry(1.4*s.size, 0.3*s.size, 2.5*s.size);
-  const deckMat = new THREE.MeshPhongMaterial({color: isPlayer ? 0x33cc55 : 0x888866});
-  const deck = new THREE.Mesh(deckGeo, deckMat);
-  deck.position.y = 0.75*s.size;
-  deck.position.z = -0.3*s.size;
-  group.add(deck);
+  // Deck
+  const deck=new THREE.Mesh(
+    new THREE.BoxGeometry(1.4*sz,0.3*sz,2.5*sz),
+    new THREE.MeshPhongMaterial({color:isPlayer?0x33cc55:0x888866})
+  );
+  deck.position.set(0,0.75*sz,-0.3*sz);
+  g.add(deck);
 
-  const towerGeo = new THREE.BoxGeometry(0.6*s.size, 0.8*s.size, 0.8*s.size);
-  const towerMat = new THREE.MeshPhongMaterial({color: 0x666655});
-  const tower = new THREE.Mesh(towerGeo, towerMat);
-  tower.position.y = 1.3*s.size;
-  tower.position.z = -0.3*s.size;
-  group.add(tower);
+  // Tower
+  const tower=new THREE.Mesh(
+    new THREE.BoxGeometry(0.6*sz,0.8*sz,0.8*sz),
+    new THREE.MeshPhongMaterial({color:0x666655})
+  );
+  tower.position.set(0,1.3*sz,0);
+  g.add(tower);
 
-  const gunGeo = new THREE.CylinderGeometry(0.08*s.size, 0.08*s.size, 2*s.size, 8);
-  const gunMat = new THREE.MeshPhongMaterial({color: 0x333333});
-  const gun = new THREE.Mesh(gunGeo, gunMat);
-  gun.rotation.x = Math.PI/2;
-  gun.position.y = 1.1*s.size;
-  gun.position.z = 1.2*s.size;
-  group.add(gun);
+  // Gun
+  const gun=new THREE.Mesh(
+    new THREE.CylinderGeometry(0.08*sz,0.08*sz,2*sz,8),
+    new THREE.MeshPhongMaterial({color:0x333333})
+  );
+  gun.rotation.x=Math.PI/2;
+  gun.position.set(0,1.1*sz,1.2*sz);
+  g.add(gun);
 
-  scene.add(group);
-
+  scene.add(g);
   return {
-    mesh: group,
-    type: type,
-    hp: s.hp,
-    maxHp: s.hp,
-    speed: s.speed,
-    fireRate: s.fireRate,
-    bulletSpeed: s.bulletSpeed,
-    damage: s.damage,
-    range: s.range,
-    bulletSize: s.bulletSize,
-    isPlayer: isPlayer,
-    alive: true,
-    fireCD: 0,
-    targetRot: 0,
-    aiTarget: null,
-    aiNextDir: 0,
-    aiDir: new THREE.Vector3()
+    mesh:g, type, hp:s.hp, maxHp:s.hp,
+    speed:s.speed, fireRate:s.fireRate, bulletSpeed:s.bulletSpeed,
+    damage:s.damage, range:s.range, bulletSize:s.bulletSize,
+    isPlayer, alive:true, fireCD:0,
+    aiTarget:null, aiNextDir:0
   };
 }
 
+// --- GAME START ---
 function startGame(){
-  menuEl.style.display = 'none';
-  hudEl.style.display = 'block';
-  gameStarted = true;
-  gameOver = false;
-  kills = 0;
-  level = 1;
-  xp = 0;
-  xpNeeded = 100;
-  weaponIdx = 0;
+  menuEl.style.display='none';
+  hudEl.style.display='block';
+  gameStarted=true; gameOver=false;
+  kills=0; level=1; xp=0; xpNeeded=100; weaponIdx=0;
 
-  bots.forEach(b => { if(b.mesh) scene.remove(b.mesh); });
-  bullets.forEach(b => { if(b.mesh) scene.remove(b.mesh); });
-  mines.forEach(m => { if(m.mesh) scene.remove(m.mesh); });
-  particles.forEach(p => { if(p.mesh) scene.remove(p.mesh); });
-  bots = [];
-  bullets = [];
-  mines = [];
-  particles = [];
+  // Cleanup
+  [bots,bullets,mines,particles].forEach(arr=>arr.forEach(o=>{if(o.mesh)scene.remove(o.mesh);}));
+  bots=[]; bullets=[]; mines=[]; particles=[];
 
-  player = createShip(0, true);
-  player.mesh.position.set(0, 0, 0);
+  // Player
+  player=createShip(0,true);
+  player.mesh.position.set(0,0,0);
 
-  for(let i = 0; i < CFG.botCount; i++){
-    const t = Math.floor(Math.random()*3);
-    const b = createShip(t, false);
-    const a = Math.random()*Math.PI*2;
-    const r = 80 + Math.random()*(CFG.worldSize-100);
-    b.mesh.position.set(Math.cos(a)*r, 0, Math.sin(a)*r);
+  // Bots
+  for(let i=0;i<CFG.botCount;i++){
+    const t=Math.floor(rand()*3);
+    const b=createShip(t,false);
+    const a=rand()*TAU, r=rm(80,CFG.worldSize-80);
+    b.mesh.position.set(Math.cos(a)*r,0,Math.sin(a)*r);
     bots.push(b);
   }
 }
 
-function spawnBullet(shooter, targetPos){
-  const w = CFG.shipTypes[shooter.type];
-  const dir = new THREE.Vector3().subVectors(targetPos, shooter.mesh.position);
-  dir.y = 0;
+// --- COMBAT ---
+function spawnBullet(shooter,target){
+  const w=CFG.shipTypes[shooter.type];
+  const dir=new THREE.Vector3().subVectors(target,shooter.mesh.position);
+  dir.y=0;
+  const dist=dir.length();
+  if(dist<0.5)return;
   dir.normalize();
+  if(dist>shooter.range)dir.multiplyScalar(shooter.range);
+  const startPos=shooter.mesh.position.clone().add(dir.clone().multiplyScalar(3*CFG.shipTypes[shooter.type].size));
+  startPos.y=1.1*CFG.shipTypes[shooter.type].size;
 
-  const geo = new THREE.SphereGeometry(w.bulletSize, 6, 6);
-  const mat = new THREE.MeshBasicMaterial({color: shooter.isPlayer ? 0xffff00 : 0xff4400});
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.position.copy(shooter.mesh.position);
-  mesh.position.y = 1.1 * CFG.shipTypes[shooter.type].size;
-  mesh.position.add(dir.clone().multiplyScalar(3));
+  const mesh=new THREE.Mesh(
+    new THREE.SphereGeometry(w.bulletSize,6,6),
+    new THREE.MeshBasicMaterial({color:shooter.isPlayer?0xffff00:0xff4400})
+  );
+  mesh.position.copy(startPos);
   scene.add(mesh);
-
-  bullets.push({
-    mesh,
-    dir: dir,
-    speed: w.bulletSpeed,
-    damage: w.damage,
-    range: w.range,
-    traveled: 0,
-    owner: shooter
-  });
+  bullets.push({mesh,dir:dir.clone().normalize(),speed:w.bulletSpeed,damage:w.damage,
+    range:w.range,traveled:0,owner:shooter});
 }
 
-function spawnMine(pos, owner){
-  const geo = new THREE.SphereGeometry(0.5, 8, 8);
-  const mat = new THREE.MeshPhongMaterial({color: 0xff0000, emissive: 0x440000});
-  const mesh = new THREE.Mesh(geo, mat);
+function spawnMine(pos,owner){
+  const mesh=new THREE.Mesh(
+    new THREE.SphereGeometry(0.5,8,8),
+    new THREE.MeshPhongMaterial({color:0xff2222,emissive:0x550000})
+  );
   mesh.position.copy(pos);
-  mesh.position.y = 0.3;
+  mesh.position.y=0.3;
   scene.add(mesh);
-
-  mines.push({mesh, owner, timer: 3, radius: 8, damage: 40});
+  mines.push({mesh,owner,timer:3,radius:8,damage:40});
 }
 
-function spawnExplosion(pos, color, count){
+function spawnExplosion(pos,color,count){
   for(let i=0;i<count;i++){
-    const geo = new THREE.SphereGeometry(0.15+Math.random()*0.2, 4, 4);
-    const mat = new THREE.MeshBasicMaterial({color});
-    const mesh = new THREE.Mesh(geo, mat);
+    const mesh=new THREE.Mesh(
+      new THREE.SphereGeometry(rm(0.1,0.25),4,4),
+      new THREE.MeshBasicMaterial({color})
+    );
     mesh.position.copy(pos);
     scene.add(mesh);
-    const v = new THREE.Vector3((Math.random()-.5)*20, Math.random()*15, (Math.random()-.5)*20);
-    particles.push({mesh, vel:v, life:0.5+Math.random()*0.5});
+    particles.push({mesh,vel:new THREE.Vector3(rm(-10,10),rm(5,15),rm(-10,10)),
+      life:rm(0.3,0.8)});
   }
 }
 
+// --- PLAYER UPGRADE ---
 function gainXP(amount){
-  xp += amount;
-  while(xp >= xpNeeded){
-    xp -= xpNeeded;
+  xp+=amount;
+  while(xp>=xpNeeded){
+    xp-=xpNeeded;
     level++;
-    xpNeeded = level * 120;
-    if(level === 5 && weaponIdx < 1) { weaponIdx = 1; showMsg("FIRKATEYN ACILDI!\nSilah degistir: 2", 2); }
-    if(level === 10 && weaponIdx < 2) { weaponIdx = 2; showMsg("MUHIBE ACILDI!\nSilah degistir: 3", 2); }
-    player.hp = Math.min(player.hp + 30, CFG.shipTypes[weaponIdx].hp);
-    player.maxHp = CFG.shipTypes[weaponIdx].hp;
-    player.speed = CFG.shipTypes[weaponIdx].speed;
-    player.fireRate = CFG.shipTypes[weaponIdx].fireRate;
-    player.bulletSpeed = CFG.shipTypes[weaponIdx].bulletSpeed;
-    player.damage = CFG.shipTypes[weaponIdx].damage;
-    player.range = CFG.shipTypes[weaponIdx].range;
-    player.bulletSize = CFG.shipTypes[weaponIdx].bulletSize;
-    player.type = weaponIdx;
-    player.mesh.children[0].material.color.setHex(CFG.shipTypes[weaponIdx].color);
-    const s = CFG.shipTypes[weaponIdx].size;
-    player.mesh.children[0].scale.set(s/.8, 1, s/.8);
+    xpNeeded=level*120;
+    player.maxHp=CFG.shipTypes[weaponIdx].hp;
+    player.hp=player.maxHp;
+    player.speed=CFG.shipTypes[weaponIdx].speed;
+    player.fireRate=CFG.shipTypes[weaponIdx].fireRate;
+    player.bulletSpeed=CFG.shipTypes[weaponIdx].bulletSpeed;
+    player.damage=CFG.shipTypes[weaponIdx].damage;
+    player.range=CFG.shipTypes[weaponIdx].range;
+    player.bulletSize=CFG.shipTypes[weaponIdx].bulletSize;
+    if(level===5&&weaponIdx<1){weaponIdx=1;showMsg("FIRKATEYN ACILDI!\n2'ye bas",2);}
+    if(level===10&&weaponIdx<2){weaponIdx=2;showMsg("MUHIBE ACILDI!\n3'e bas",2);}
   }
 }
-
-function showMsg(text, duration){
-  msgEl.textContent = text;
-  msgEl.style.display = 'block';
-  setTimeout(()=>{ msgEl.style.display='none'; }, duration*1000);
+function showMsg(text,dur){
+  msgEl.textContent=text; msgEl.style.display='block';
+  setTimeout(()=>msgEl.style.display='none',dur*1000);
 }
 
+// --- SHIP SCALE FIX ---
+function setShipScale(ship){
+  const s=CFG.shipTypes[ship.type].size;
+  ship.mesh.scale.set(s*1.2,1,s*1.2);
+}
+
+// --- UPDATE LOOP ---
 function update(dt){
-  if(!gameStarted || gameOver) return;
+  if(!gameStarted||gameOver)return;
+  fireCooldown=Math.max(0,fireCooldown-dt);
+  mineCooldown=Math.max(0,mineCooldown-dt);
 
-  fireCooldown = Math.max(0, fireCooldown - dt);
-  mineCooldown = Math.max(0, mineCooldown - dt);
+  // Weapon switch (check level unlock)
+  if(keys['Digit1'])weaponIdx=0;
+  if(keys['Digit2']&&level>=5)weaponIdx=1;
+  if(keys['Digit3']&&level>=10)weaponIdx=2;
+  player.type=weaponIdx;
 
-  if(keys['Digit1']) weaponIdx = 0;
-  if(keys['Digit2'] && weaponIdx >= 1) weaponIdx = 1;
-  if(keys['Digit3'] && weaponIdx >= 2) weaponIdx = 2;
+  // Player movement (A/D rotate, W/S thrust)
+  const fwd=new THREE.Vector3(0,0,1).applyQuaternion(player.mesh.quaternion);
+  if(keys['KeyW']||keys['ArrowUp'])player.mesh.position.addScaledVector(fwd,player.speed*dt);
+  if(keys['KeyS']||keys['ArrowDown'])player.mesh.position.addScaledVector(fwd,-player.speed*0.5*dt);
+  if(keys['KeyA']||keys['ArrowLeft'])player.mesh.rotateY(2.5*dt);
+  if(keys['KeyD']||keys['ArrowRight'])player.mesh.rotateY(-2.5*dt);
 
-  const spd = player.speed;
-  const rotSpd = 2.5;
-  if(keys['KeyW']||keys['ArrowUp']){
-    const fwd = new THREE.Vector3(0,0,1).applyQuaternion(player.mesh.quaternion);
-    player.mesh.position.addScaledVector(fwd, spd*dt);
+  // Boundary
+  const wp=player.mesh.position, bnd=CFG.worldSize-10;
+  wp.x=Math.max(-bnd,Math.min(bnd,wp.x));
+  wp.z=Math.max(-bnd,Math.min(bnd,wp.z));
+  wp.y=0;
+
+  // Fire (mouse position -> aim -> shoot)
+  if(mouse.down&&fireCooldown<=0){
+    const rc=new THREE.Raycaster();
+    rc.setFromCamera(new THREE.Vector2(mouse.x,mouse.y),camera);
+    const plane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
+    const target=new THREE.Vector3();
+    rc.ray.intersectPlane(plane,target);
+    if(target){spawnBullet(player,target);fireCooldown=player.fireRate;}
   }
-  if(keys['KeyS']||keys['ArrowDown']){
-    const fwd = new THREE.Vector3(0,0,1).applyQuaternion(player.mesh.quaternion);
-    player.mesh.position.addScaledVector(fwd, -spd*0.5*dt);
-  }
-  if(keys['KeyA']||keys['ArrowLeft']) player.mesh.rotateY(rotSpd*dt);
-  if(keys['KeyD']||keys['ArrowRight']) player.mesh.rotateY(-rotSpd*dt);
-
-  const wp = player.mesh.position;
-  const boundary = CFG.worldSize - 10;
-  wp.x = Math.max(-boundary, Math.min(boundary, wp.x));
-  wp.z = Math.max(-boundary, Math.min(boundary, wp.z));
-  wp.y = 0;
-
-  if(mouse.down && fireCooldown <= 0){
-    const raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(new THREE.Vector2(mouse.x, mouse.y), camera);
-    const plane = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
-    const target = new THREE.Vector3();
-    raycaster.ray.intersectPlane(plane, target);
-    if(target){
-      spawnBullet(player, target);
-      fireCooldown = player.fireRate;
-    }
-  }
-  if(keys['Space'] && mineCooldown <= 0){
-    spawnMine(player.mesh.position.clone(), player);
-    mineCooldown = 2;
-    keys['Space'] = false;
+  if(keys['Space']&&mineCooldown<=0){
+    spawnMine(player.mesh.position.clone(),player);
+    mineCooldown=2; keys['Space']=false;
   }
 
-  const aliveShips = [player, ...bots].filter(b => b.alive);
-  aliveEl.textContent = 'Alive: ' + aliveShips.length;
+  // Flat list of alive ships
+  const alive=[player,...bots].filter(b=>b.alive);
+  aliveEl.textContent='Alive: '+alive.length;
 
+  // --- BOT AI ---
   for(const bot of bots){
-    if(!bot.alive) continue;
-    bot.fireCD = Math.max(0, bot.fireCD - dt);
+    if(!bot.alive)continue;
+    bot.fireCD=Math.max(0,bot.fireCD-dt);
 
-    if(!bot.aiTarget || bot.mesh.position.distanceTo(bot.aiTarget) < 5 || Date.now() > bot.aiNextDir){
-      let nearest = null, nd = Infinity;
-      for(const other of aliveShips){
-        if(other === bot) continue;
-        const d = bot.mesh.position.distanceTo(other.mesh.position);
-        if(d < nd){ nd = d; nearest = other; }
+    // Pick target if needed
+    if(!bot.aiTarget||bot.mesh.position.distanceTo(bot.aiTarget)<5||Date.now()>bot.aiNextDir){
+      let nearest=null,nd=Infinity;
+      for(const o of alive){
+        if(o===bot)continue;
+        const d=bot.mesh.position.distanceTo(o.mesh.position);
+        if(d<nd){nd=d;nearest=o;}
       }
-      if(nearest && nd < 80){
-        bot.aiTarget = nearest.mesh.position.clone();
-      } else {
-        const a = Math.random()*Math.PI*2;
-        const r = 50 + Math.random()*(CFG.worldSize*0.6);
-        bot.aiTarget = new THREE.Vector3(Math.cos(a)*r, 0, Math.sin(a)*r);
+      if(nearest&&nd<100)bot.aiTarget=nearest.mesh.position.clone();
+      else{
+        const a=rand()*TAU,r=rm(50,CFG.worldSize*0.6);
+        bot.aiTarget=new THREE.Vector3(Math.cos(a)*r,0,Math.sin(a)*r);
       }
-      bot.aiNextDir = Date.now() + 2000 + Math.random()*3000;
+      bot.aiNextDir=Date.now()+rm(2000,5000);
     }
 
-    const toTarget = new THREE.Vector3().subVectors(bot.aiTarget, bot.mesh.position);
-    toTarget.y = 0;
-    if(toTarget.length() > 3){
-      const targetAngle = Math.atan2(toTarget.x, toTarget.z);
-      let angleDiff = targetAngle - bot.mesh.rotation.y;
-      while(angleDiff > Math.PI) angleDiff -= Math.PI*2;
-      while(angleDiff < -Math.PI) angleDiff += Math.PI*2;
-      bot.mesh.rotateY(Math.sign(angleDiff)*Math.min(Math.abs(angleDiff), 2.5*dt));
-      bot.mesh.position.addScaledVector(new THREE.Vector3(0,0,1).applyQuaternion(bot.mesh.quaternion), bot.speed*0.6*dt);
+    // Move toward target
+    const toT=new THREE.Vector3().subVectors(bot.aiTarget,bot.mesh.position);
+    toT.y=0;
+    if(toT.length()>3){
+      const targetAngle=Math.atan2(toT.x,toT.z);
+      let dA=targetAngle-bot.mesh.rotation.y;
+      while(dA>Math.PI)dA-=TAU;while(dA<-Math.PI)dA+=TAU;
+      bot.mesh.rotateY(Math.sign(dA)*Math.min(Math.abs(dA),2.5*dt));
+      const f=new THREE.Vector3(0,0,1).applyQuaternion(bot.mesh.quaternion);
+      bot.mesh.position.addScaledVector(f,bot.speed*0.6*dt);
     }
+    bot.mesh.position.y=0;
+    const b={...bot}; // clamp bots
+    bot.mesh.position.x=Math.max(-CFG.worldSize+10,Math.min(CFG.worldSize-10,bot.mesh.position.x));
+    bot.mesh.position.z=Math.max(-CFG.worldSize+10,Math.min(CFG.worldSize-10,bot.mesh.position.z));
 
-    bot.mesh.position.y = 0;
-
-    const bnd = CFG.worldSize - 20;
-    bot.mesh.position.x = Math.max(-bnd, Math.min(bnd, bot.mesh.position.x));
-    bot.mesh.position.z = Math.max(-bnd, Math.min(bnd, bot.mesh.position.z));
-
-    if(bot.fireCD <= 0){
-      for(const other of aliveShips){
-        if(other === bot) continue;
-        const d = bot.mesh.position.distanceTo(other.mesh.position);
-        if(d < bot.range){
-          spawnBullet(bot, other.mesh.position);
-          bot.fireCD = bot.fireRate * (0.8 + Math.random()*0.4);
-          break;
-        }
+    // Bot fires at nearest in range
+    if(bot.fireCD<=0){
+      for(const o of alive){
+        if(o===bot)continue;
+        const d=bot.mesh.position.distanceTo(o.mesh.position);
+        if(d<bot.range){spawnBullet(bot,o.mesh.position);bot.fireCD=bot.fireRate*rm(0.8,1.4);break;}
       }
     }
   }
 
-  for(let i = bullets.length-1; i >= 0; i--){
-    const b = bullets[i];
-    b.mesh.position.addScaledVector(b.dir, b.speed*dt);
-    b.traveled += b.speed*dt;
+  // --- BULLETS ---
+  for(let i=bullets.length-1;i>=0;i--){
+    const b=bullets[i];
+    b.mesh.position.addScaledVector(b.dir,b.speed*dt);
+    b.traveled+=b.speed*dt;
+    let hit=false;
 
-    let hit = false;
-    for(const ship of aliveShips){
-      if(ship === b.owner) continue;
-      const d = b.mesh.position.distanceTo(ship.mesh.position);
-      if(d < 2.5 * CFG.shipTypes[ship.type].size){
-        ship.hp -= b.damage;
-        spawnExplosion(b.mesh.position.clone(), 0xffaa00, 5);
-        hit = true;
-
-        if(ship.hp <= 0){
-          ship.alive = false;
+    for(const ship of alive){
+      if(ship===b.owner)continue;
+      const d=b.mesh.position.distanceTo(ship.mesh.position);
+      if(d<2.5*CFG.shipTypes[ship.type].size){
+        ship.hp-=b.damage;
+        spawnExplosion(b.mesh.position.clone(),0xffaa00,5);
+        hit=true;
+        if(ship.hp<=0){
+          ship.alive=false;
           scene.remove(ship.mesh);
-          spawnExplosion(ship.mesh.position.clone(), 0xff4400, 20);
-          if(b.owner.isPlayer){
-            kills++;
-            gainXP(30 + ship.type*20);
-          } else if(ship === player){
-            gameOver = true;
-            showMsg("OLDUN!\nYeniden baslatmak icin tikla", 99);
-            document.addEventListener('click', restart, {once:true});
+          spawnExplosion(ship.mesh.position.clone(),0xff4400,20);
+          if(b.owner.isPlayer){kills++;gainXP(30+ship.type*20);}
+          else if(ship===player){
+            gameOver=true;
+            showMsg("OLDUN!\nTikla - Yeniden Basla",99);
+            document.addEventListener('click',()=>startGame(),{once:true});
           }
         }
         break;
       }
     }
-
-    if(hit || b.traveled > b.range){
-      scene.remove(b.mesh);
-      bullets.splice(i, 1);
-    }
+    if(hit||b.traveled>b.range){scene.remove(b.mesh);bullets.splice(i,1);}
   }
 
-  for(let i = mines.length-1; i >= 0; i--){
-    const m = mines[i];
-    m.timer -= dt;
-    m.mesh.rotation.y += dt * 2;
-
-    if(m.timer <= 0){
-      for(const ship of aliveShips){
-        if(ship === m.owner) continue;
-        const d = m.mesh.position.distanceTo(ship.mesh.position);
-        if(d < m.radius){
-          ship.hp -= m.damage;
-          spawnExplosion(m.mesh.position.clone(), 0xff2200, 15);
-          if(ship.hp <= 0){
-            ship.alive = false;
-            scene.remove(ship.mesh);
-            spawnExplosion(ship.mesh.position.clone(), 0xff4400, 20);
-            if(m.owner.isPlayer){
-              kills++;
-              gainXP(40);
-            }
-          }
+  // --- MINES ---
+  for(let i=mines.length-1;i>=0;i--){
+    const m=mines[i];
+    m.timer-=dt;
+    m.mesh.rotation.y+=dt*2;
+    if(m.timer<=0){
+      for(const ship of alive){
+        if(ship===m.owner)continue;
+        if(m.mesh.position.distanceTo(ship.mesh.position)<m.radius){
+          ship.hp-=m.damage;
+          spawnExplosion(m.mesh.position.clone(),0xff2200,15);
+          if(ship.hp<=0){ship.alive=false;scene.remove(ship.mesh);
+            spawnExplosion(ship.mesh.position.clone(),0xff4400,20);
+            if(m.owner.isPlayer){kills++;gainXP(40);}}
         }
       }
-      scene.remove(m.mesh);
-      mines.splice(i, 1);
+      scene.remove(m.mesh);mines.splice(i,1);
     }
   }
 
-  for(let i = particles.length-1; i >= 0; i--){
-    const p = particles[i];
-    p.mesh.position.addScaledVector(p.vel, dt);
-    p.vel.y -= 20*dt;
-    p.life -= dt;
-    if(p.life <= 0){ scene.remove(p.mesh); particles.splice(i,1); }
+  // --- PARTICLES ---
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.mesh.position.addScaledVector(p.vel,dt);
+    p.vel.y-=25*dt;
+    p.life-=dt;
+    if(p.life<=0){scene.remove(p.mesh);particles.splice(i,1);}
   }
 
-  waterMesh.material.uniforms.uTime.value = Date.now() * 0.001;
+  // Water shader time
+  waterMesh.material.uniforms.uTime.value=Date.now()*0.001;
 
+  // Camera follows player
   if(player.alive){
-    const lookDir = new THREE.Vector3();
-    camera.getWorldDirection(lookDir);
-    const planeY = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
-    const raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(new THREE.Vector2(mouse.x, mouse.y), camera);
-    const aimPoint = new THREE.Vector3();
-    raycaster.ray.intersectPlane(planeY, aimPoint);
-    if(aimPoint){
-      player.mesh.lookAt(aimPoint.x, 0, aimPoint.z);
-    }
-
-    const camTarget = player.mesh.position.clone().add(new THREE.Vector3(0, 50, -30));
-    camera.position.lerp(camTarget, 4*dt);
-    const lookTarget = player.mesh.position.clone();
-    lookTarget.y = 0;
-    camera.lookAt(lookTarget);
+    const camT=player.mesh.position.clone().add(new THREE.Vector3(0,45,-30));
+    camera.position.lerp(camT,5*dt);
+    const lkT=player.mesh.position.clone();lkT.y=0;
+    camera.lookAt(lkT);
   }
 
-  hpEl.textContent = `HP: ${Math.ceil(player.hp)}/${player.maxHp}`;
-  hpEl.style.color = player.hp/player.maxHp > 0.5 ? '#0f0' : player.hp/player.maxHp > 0.25 ? '#ff0' : '#f00';
-  xpEl.textContent = `XP: ${xp}/${xpNeeded}`;
-  levelEl.textContent = `SEVIYE ${level}`;
-  killsEl.textContent = `Kills: ${kills}`;
-  weaponEl.textContent = `[${weaponIdx+1}] ${CFG.shipTypes[weaponIdx].name.toUpperCase()}`;
+  // HUD
+  hpEl.textContent=`HP: ${Math.ceil(Math.max(0,player.hp))}/${player.maxHp}`;
+  hpEl.style.color=player.hp/player.maxHp>0.5?'#0f0':player.hp/player.maxHp>0.25?'#ff0':'#f00';
+  xpEl.textContent=`XP: ${xp}/${xpNeeded}`;
+  levelEl.textContent=`SEVIYE ${level}`;
+  killsEl.textContent=`Kills: ${kills}`;
+  weaponEl.textContent=`[${weaponIdx+1}] ${CFG.shipTypes[weaponIdx].name.toUpperCase()}`;
 
-  mmCtx.fillStyle = 'rgba(0,20,50,0.9)';
+  // Minimap
+  mmCtx.fillStyle='rgba(0,20,50,0.9)';
   mmCtx.fillRect(0,0,160,160);
-  const scale = 160/(CFG.worldSize*2.2);
-  const px = 80 + player.mesh.position.x*scale;
-  const py = 80 + player.mesh.position.z*scale;
+  const sc=160/(CFG.worldSize*2.2);
+  const px=80+player.mesh.position.x*sc, py=80+player.mesh.position.z*sc;
   for(const b of bots){
-    if(!b.alive) continue;
-    const bx = 80 + b.mesh.position.x*scale;
-    const by = 80 + b.mesh.position.z*scale;
-    mmCtx.fillStyle = '#f44';
-    mmCtx.fillRect(bx-1,by-1,2,2);
+    if(!b.alive)continue;
+    mmCtx.fillStyle=b.isPlayer?'#0f0':'#f44';
+    mmCtx.beginPath();
+    mmCtx.arc(80+b.mesh.position.x*sc,80+b.mesh.position.z*sc,b.isPlayer?3:2,0,TAU);
+    mmCtx.fill();
   }
-  mmCtx.fillStyle = '#0f0';
-  mmCtx.beginPath();
-  mmCtx.arc(px,py,3,0,Math.PI*2);
-  mmCtx.fill();
-}
-
-function restart(){
-  startGame();
+  mmCtx.fillStyle='#0f0';
+  mmCtx.beginPath();mmCtx.arc(px,py,3,0,TAU);mmCtx.fill();
 }
 
 function animate(){
   requestAnimationFrame(animate);
-  const dt = Math.min(clock.getDelta(), 0.05);
+  const dt=Math.min(clock.getDelta(),0.05);
   update(dt);
-  renderer.render(scene, camera);
+  renderer.render(scene,camera);
 }
-
 init();
 </script>
 </body>
