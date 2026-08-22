@@ -1,0 +1,43 @@
+[2026-08-22T14:40:30.339Z][INFO] Command-line: /home/turker/Unity/Hub/Editor/6000.5.9f1/Editor/Data/Resources/PackageManager/Server/UnityPackageManager server -s 107746 --ipc-path /tmp/Unity-Upm-107746.sock -l 2 --log-file /home/turker/Documents/playground/ocean-battle-royale/Logs/upm.log
+[2026-08-22T14:40:30.554Z][INFO] IPC server started (IPC path=/tmp/Unity-Upm-107746.sock).
+[2026-08-22T14:40:30.554Z][INFO] Hint: To connect to this UPM instance, launch Unity with the command-line parameter -upmIpcPath Upm-107746.
+[2026-08-22T14:40:40.334Z][INFO] project:list-packages <-- Request received
+params: {}
+[2026-08-22T14:40:40.367Z][INFO] project:list-packages <-- Request received
+params: {}
+[2026-08-22T14:40:40.807Z][INFO] project:list-packages --> 200 (475 ms)
+[2026-08-22T14:40:42.487Z][INFO] project:list-packages --> 200 (2120 ms)
+[2026-08-22T14:40:42.812Z][INFO] project:list-packages <-- Request received
+params: {}
+[2026-08-22T14:40:42.878Z][INFO] config:project:get-registries <-- Request received
+params: {}
+[2026-08-22T14:40:42.922Z][INFO] config:project:get-registries --> 200 (44 ms)
+[2026-08-22T14:40:43.250Z][INFO] project:list-packages --> 200 (438 ms)
+[2026-08-22T14:40:43.569Z][INFO] project:update-dependencies <-- Request received
+params: {}
+[2026-08-22T14:40:43.599Z][INFO] project:update-dependencies --> 200 (30 ms)
+[2026-08-22T14:40:43.621Z][INFO] project:resolve-packages <-- Request received
+params: {}
+[2026-08-22T14:40:45.619Z][WARN] Requested version [1.12.5] for package [com.unity.services.core] overridden by minimum version [1.18.0].
+[2026-08-22T14:40:45.619Z][WARN] Requested version [3.2.0] for package [com.unity.test-framework.performance] overridden by minimum version [3.5.0].
+[2026-08-22T14:40:45.619Z][WARN] Requested version [1.0.4] for package [com.unity.services.analytics] overridden by minimum version [6.3.0].
+[2026-08-22T14:40:45.624Z][INFO] project:resolve-packages --> 200 (2003 ms)
+[2026-08-22T14:40:48.697Z][INFO] project:list-packages <-- Request received
+params: {}
+[2026-08-22T14:40:49.270Z][INFO] project:list-packages --> 200 (573 ms)
+[2026-08-22T14:40:49.329Z][INFO] project:list-packages <-- Request received
+params: {}
+[2026-08-22T14:40:49.842Z][INFO] project:list-packages --> 200 (513 ms)
+[2026-08-22T14:40:49.917Z][INFO] project:list-packages <-- Request received
+params: {}
+[2026-08-22T14:40:50.455Z][INFO] project:list-packages --> 200 (538 ms)
+[2026-08-22T14:40:51.141Z][INFO] project:list-packages <-- Request received
+params: {}
+[2026-08-22T14:40:51.569Z][INFO] project:list-packages --> 200 (428 ms)
+[2026-08-22T14:40:51.619Z][INFO] project:list-packages <-- Request received
+params: {}
+[2026-08-22T14:40:52.046Z][INFO] project:list-packages --> 200 (427 ms)
+[2026-08-22T14:40:52.128Z][INFO] project:list-packages <-- Request received
+params: {}
+[2026-08-22T14:40:52.521Z][INFO] project:list-packages --> 200 (393 ms)
+[2026-08-22T14:43:46.290Z][INFO] Shutting down UnityPackageManager: parent process [107746] is no longer running.
