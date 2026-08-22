@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine.SceneManagement;
@@ -73,7 +74,7 @@ namespace OceanBattleRoyale.Editor
             sun.color = new Color(1f, 0.95f, 0.85f);
             sun.transform.rotation = Quaternion.Euler(50, -30, 0);
             sun.shadows = LightShadows.Soft;
-            sun.shadowDistance = 500f;
+            QualitySettings.shadowDistance = 500f;
 
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.Exponential;
