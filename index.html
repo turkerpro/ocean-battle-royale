@@ -56,9 +56,9 @@ const CFG = {
   worldSize: 600,
   botCount: 30,
   shipTypes: [
-    {name:'Ticaik', hp:80, speed:14, size:.8, color:0x44aa44, fireRate:1.2, bulletSpeed:40, damage:8, range:60, bulletSize:.3},
-    {name:'Firkateyn', hp:150, speed:12, size:1.1, color:0x4488cc, fireRate:0.8, bulletSpeed:50, damage:14, range:80, bulletSize:.4},
-    {name:'Muhibe', hp:250, speed:10, size:1.4, color:0xcc8844, fireRate:0.5, bulletSpeed:55, damage:22, range:100, bulletSize:.5},
+    {name:'Ticaik', hp:80, speed:14, size:1.8, color:0x44aa44, fireRate:1.2, bulletSpeed:40, damage:8, range:60, bulletSize:.6},
+    {name:'Firkateyn', hp:150, speed:12, size:2.2, color:0x4488cc, fireRate:0.8, bulletSpeed:50, damage:14, range:80, bulletSize:.7},
+    {name:'Muhibe', hp:250, speed:10, size:2.8, color:0xcc8844, fireRate:0.5, bulletSpeed:55, damage:22, range:100, bulletSize:.9},
   ]
 };
 
@@ -96,10 +96,10 @@ document.addEventListener('contextmenu', e => e.preventDefault());
 function init(){
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x0a1628);
-  scene.fog = new THREE.FogExp2(0x0a1628, 0.002);
+  scene.fog = new THREE.Fog(0x0a1628, 150, 500);
 
   camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 2000);
-  camera.position.set(0, 60, -40);
+  camera.position.set(0, 30, -20);
   camera.lookAt(0, 0, 0);
 
   renderer = new THREE.WebGLRenderer({antialias:true});
@@ -109,9 +109,9 @@ function init(){
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   document.body.appendChild(renderer.domElement);
 
-  const amb = new THREE.AmbientLight(0x334466, 0.8);
+  const amb = new THREE.AmbientLight(0x223344, 0.6);
   scene.add(amb);
-  const sun = new THREE.DirectionalLight(0xffeedd, 1.2);
+  const sun = new THREE.DirectionalLight(0xffeedd, 0.8);
   sun.position.set(100, 150, 50);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
@@ -121,14 +121,11 @@ function init(){
   sun.shadow.camera.bottom = -300;
   scene.add(sun);
 
-  const waterGeo = new THREE.PlaneGeometry(CFG.worldSize*3, CFG.worldSize*3, 80, 80);
-  const waterMat = new THREE.MeshPhongMaterial({
-    color: 0x0066aa,
+  const waterGeo = new THREE.PlaneGeometry(CFG.worldSize*2, CFG.worldSize*2, 60, 60);
+  const waterMat = new THREE.MeshLambertMaterial({
+    color: 0x004477,
     transparent: true,
-    opacity: 0.85,
-    shininess: 100,
-    specular: 0x333355,
-    flatShading: false
+    opacity: 0.95,
   });
   waterMesh = new THREE.Mesh(waterGeo, waterMat);
   waterMesh.rotation.x = -Math.PI/2;
@@ -311,7 +308,7 @@ function gainXP(amount){
     player.type = weaponIdx;
     player.mesh.children[0].material.color.setHex(CFG.shipTypes[weaponIdx].color);
     const s = CFG.shipTypes[weaponIdx].size;
-    player.mesh.children[0].scale.set(s/.8, 1, s/.8);
+    player.mesh.children[0].scale.set(s/1.8, 1, s/1.8);
   }
 }
 
@@ -430,7 +427,7 @@ function update(dt){
     for(const ship of aliveShips){
       if(ship === b.owner) continue;
       const d = b.mesh.position.distanceTo(ship.mesh.position);
-      if(d < 2.5 * CFG.shipTypes[ship.type].size){
+      if(d < 2.0 * CFG.shipTypes[ship.type].size){
         ship.hp -= b.damage;
         spawnExplosion(b.mesh.position.clone(), 0xffaa00, 5);
         hit = true;
@@ -516,7 +513,7 @@ function update(dt){
       player.mesh.lookAt(aimPoint.x, 0, aimPoint.z);
     }
 
-    const camTarget = player.mesh.position.clone().add(new THREE.Vector3(0, 50, -30));
+    const camTarget = player.mesh.position.clone().add(new THREE.Vector3(0, 25, -15));
     camera.position.lerp(camTarget, 4*dt);
     const lookTarget = player.mesh.position.clone();
     lookTarget.y = 0;
