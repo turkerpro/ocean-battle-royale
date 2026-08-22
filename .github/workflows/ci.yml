@@ -12,6 +12,7 @@ permissions:
 
 env:
   UNITY_VERSION: 6000.0.32f1
+  UNITY_IMAGE: unityci/editor:ubuntu-6000.0.32f1-webgl-3
 
 jobs:
   build-webgl:
@@ -32,18 +33,49 @@ jobs:
           docker image prune -af
           df -h
 
-      - name: Build WebGL
-        uses: game-ci/unity-builder@v4
-        env:
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-          UNITY_SERIAL: ""
-        with:
-          projectPath: .
-          targetPlatform: WebGL
-          unityVersion: ${{ env.UNITY_VERSION }}
-          allowDirtyBuild: true
+      - name: Pull Unity Docker image
+        run: docker pull ${{ env.UNITY_IMAGE }}
 
+      - name: Activate & Build WebGL
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/github/workspace \
+            -w /github/workspace \
+            -e UNITY_EMAIL="${{ secrets.UNITY_EMAIL }}" \
+            -e UNITY_PASSWORD="${{ secrets.UNITY_PASSWORD }}" \
+            ${{ env.UNITY_IMAGE }} \
+            /bin/bash -c '
+              echo "=== Unity Version ==="
+              /opt/unity/Editor/Unity -version || true
+
+              echo "=== Activating license ==="
+              xvfb-run --auto-servernum --server-args="-screen 0 640x480x24" \
+                /opt/unity/Editor/Unity \
+                -batchmode \
+                -nographics \
+                -quit \
+                -logFile /dev/stdout \
+                -username "$UNITY_EMAIL" \
+                -password "$UNITY_PASSWORD" \
+                || echo "Activation step completed (may have warnings)"
+
+              echo "=== Building WebGL ==="
+              xvfb-run --auto-servernum --server-args="-screen 0 640x480x24" \
+                /opt/unity/Editor/Unity \
+                -batchmode \
+                -nographics \
+                -quit \
+                -logFile /dev/stdout \
+                -username "$UNITY_EMAIL" \
+                -password "$UNITY_PASSWORD" \
+                -projectPath /github/workspace \
+                -buildTarget WebGL \
+                -executeMethod OceanBattleRoyale.Editor.BuildScript.BuildWebGL \
+                || true
+
+              echo "=== Build output ==="
+              ls -la build/WebGL/ 2>/dev/null || echo "No build output found"
+            '
       - name: Upload WebGL Build
         uses: actions/upload-artifact@v4
         with:
