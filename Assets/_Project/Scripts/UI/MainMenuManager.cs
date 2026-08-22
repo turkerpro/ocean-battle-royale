@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 
 namespace OceanBattleRoyale.UI
@@ -37,6 +38,13 @@ namespace OceanBattleRoyale.UI
 
         private void CreateUI()
         {
+            if (FindObjectsByType<EventSystem>(FindObjectsSortMode.None).Length == 0)
+            {
+                var esGO = new GameObject("EventSystem");
+                esGO.AddComponent<EventSystem>();
+                esGO.AddComponent<StandaloneInputModule>();
+            }
+
             var canvasGO = new GameObject("MenuCanvas");
             var canvas = canvasGO.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
