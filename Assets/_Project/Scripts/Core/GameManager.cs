@@ -1,23 +1,23 @@
 using UnityEngine;
-using Fusion;
-using UnityEngine.SceneManagement;
 using System.Collections.Generic;
 
 namespace OceanBattleRoyale.Core
 {
-    public class GameManager : NetworkBehaviour
+    public class GameManager : MonoBehaviour
     {
         [Header("Game Settings")]
-        [SerializeField] private NetworkedShip _playerShipPrefab;
+        [SerializeField] private GameObject _playerShipPrefab;
         [SerializeField] private SpawnTest _spawnTest;
-        [SerializeField] private float _matchDuration = 600f; // 10 minutes
+        [SerializeField] private float _matchDuration = 600f;
 
         [Header("State")]
-        [Networked] public float MatchTimeRemaining { get; set; }
-        [Networked] public NetworkBool MatchStarted { get; set; }
-        [Networked] public NetworkBool MatchEnded { get; set; }
+        public float MatchTimeRemaining { get; private set; }
+        public bool MatchStarted { get; private set; }
+        public bool MatchEnded { get; private set; }
 
-        private Dictionary<PlayerRef, NetworkedShip> _playerShips = new Dictionary<PlayerRef, NetworkedShip>();
+        private Dictionary<int, GameObject> _playerShips = new Dictionary<int, GameObject>();
+        private List<int> _alivePlayerIds = new List<int>();
+        private int _nextPlayerId = 1;
 
         public static GameManager Instance { get; private set; }
 
@@ -31,59 +31,59 @@ namespace OceanBattleRoyale.Core
             Instance = this;
         }
 
-        public override void Spawned()
+        private void Start()
         {
-            if (Object.HasStateAuthority)
+            MatchTimeRemaining = _matchDuration;
+            MatchStarted = false;
+            MatchEnded = false;
+
+            StartMatch();
+        }
+
+        private void Update()
+        {
+            if (!MatchStarted || MatchEnded) return;
+
+            MatchTimeRemaining -= Time.deltaTime;
+            if (MatchTimeRemaining <= 0)
             {
-                MatchTimeRemaining = _matchDuration;
-                MatchStarted = false;
-                MatchEnded = false;
+                EndMatch();
             }
         }
 
-        public override void FixedUpdateNetwork()
+        private void StartMatch()
         {
-            if (!Object.HasStateAuthority) return;
-
-            if (!MatchStarted && Runner.ActivePlayers.Count > 0)
-            {
-                MatchStarted = true;
-                SpawnAllPlayers();
-            }
-
-            if (MatchStarted && !MatchEnded)
-            {
-                MatchTimeRemaining -= Runner.DeltaTime;
-                if (MatchTimeRemaining <= 0)
-                {
-                    EndMatch();
-                }
-            }
+            MatchStarted = true;
+            SpawnLocalPlayer();
         }
 
-        private void SpawnAllPlayers()
+        private void SpawnLocalPlayer()
         {
-            foreach (var player in Runner.ActivePlayers)
-            {
-                SpawnPlayerShip(player);
-            }
-        }
-
-        private void SpawnPlayerShip(PlayerRef player)
-        {
+            int playerId = _nextPlayerId++;
             Vector3 spawnPos = GetRandomSpawnPosition();
-            var ship = Runner.Spawn(_playerShipPrefab, spawnPos, Quaternion.identity, player);
-            _playerShips[player] = ship;
+            GameObject ship = Instantiate(_playerShipPrefab, spawnPos, Quaternion.identity);
 
-            if (player == Runner.LocalPlayer)
+            var networkedShip = ship.GetComponent<NetworkedShip>();
+            if (networkedShip != null)
             {
-                // Setup local player camera, input, etc.
-                SetupLocalPlayer(ship);
+                networkedShip.IsLocalPlayer = true;
             }
+
+            var controller = ship.GetComponent<Network.LocalPlayerController>();
+            if (controller == null)
+            {
+                ship.AddComponent<Network.LocalPlayerController>();
+            }
+
+            _playerShips[playerId] = ship;
+            _alivePlayerIds.Add(playerId);
+
+            SetupLocalCamera(ship);
         }
 
-        private void SetupLocalPlayer(NetworkedShip ship)
+        private void SetupLocalCamera(GameObject ship)
         {
+            if (Camera.main == null) return;
             Camera.main.transform.SetParent(ship.transform);
             Camera.main.transform.localPosition = new Vector3(0, 20, -30);
             Camera.main.transform.localRotation = Quaternion.Euler(30, 0, 0);
@@ -95,64 +95,57 @@ namespace OceanBattleRoyale.Core
             return new Vector3(randomCircle.x, 0, randomCircle.y);
         }
 
-        public void OnPlayerDied(PlayerRef player, PlayerRef killer)
+        public void OnShipDied(GameObject ship)
         {
-            if (!Object.HasStateAuthority) return;
-
-            if (_playerShips.TryGetValue(player, out var ship))
+            int foundId = -1;
+            foreach (var kvp in _playerShips)
             {
-                Runner.Despawn(ship.Object);
-                _playerShips.Remove(player);
-
-                // Respawn after delay
-                StartCoroutine(RespawnPlayer(player));
+                if (kvp.Value == ship)
+                {
+                    foundId = kvp.Key;
+                    break;
+                }
             }
 
-            CheckMatchEnd();
+            if (foundId >= 0)
+            {
+                _playerShips.Remove(foundId);
+                _alivePlayerIds.Remove(foundId);
+
+                bool wasLocal = ship.GetComponent<NetworkedShip>() != null &&
+                                ship.GetComponent<NetworkedShip>().IsLocalPlayer;
+
+                if (wasLocal)
+                {
+                    StartCoroutine(RespawnLocalPlayer());
+                }
+
+                CheckMatchEnd();
+            }
         }
 
-        private System.Collections.IEnumerator RespawnPlayer(PlayerRef player)
+        private System.Collections.IEnumerator RespawnLocalPlayer()
         {
             yield return new WaitForSeconds(5f);
-
-            if (Runner.IsRunning && Runner.ActivePlayers.Contains(player))
+            if (!MatchEnded)
             {
-                SpawnPlayerShip(player);
+                SpawnLocalPlayer();
             }
         }
 
         private void CheckMatchEnd()
         {
-            int aliveCount = 0;
-            PlayerRef lastPlayer = PlayerRef.None;
-
-            foreach (var kvp in _playerShips)
+            if (_alivePlayerIds.Count <= 1)
             {
-                if (kvp.Value.IsAlive)
-                {
-                    aliveCount++;
-                    lastPlayer = kvp.Key;
-                }
-            }
-
-            if (aliveCount <= 1)
-            {
-                EndMatch(lastPlayer);
+                EndMatch();
             }
         }
 
-        private void EndMatch(PlayerRef winner = default)
+        private void EndMatch()
         {
             MatchEnded = true;
             MatchTimeRemaining = 0;
-
-            // Show results, award XP, etc.
-            Debug.Log($"[GameManager] Match ended. Winner: {winner}");
-        }
-
-        public override void Despawned(NetworkRunner runner, bool hasState)
-        {
-            _playerShips.Clear();
+            Debug.Log("[GameManager] Match ended.");
         }
     }
 }

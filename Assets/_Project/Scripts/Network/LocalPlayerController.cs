@@ -26,7 +26,7 @@ namespace OceanBattleRoyale.Network
 
         private void Start()
         {
-            if (_networkedShip != null && _networkedShip.Object.HasInputAuthority)
+            if (_networkedShip != null && _networkedShip.IsLocalPlayer)
             {
                 SetupCamera();
             }
@@ -68,7 +68,6 @@ namespace OceanBattleRoyale.Network
             }
         }
 
-        // Called by NetworkedShip.FixedUpdateNetwork via reflection or interface
         public ShipInput GetNetworkInput()
         {
             return new ShipInput

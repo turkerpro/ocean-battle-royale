@@ -1,77 +1,40 @@
 using UnityEngine;
-using Fusion;
-using System.Collections.Generic;
 
 namespace OceanBattleRoyale.Combat
 {
-    public enum MineType { Contact, Proximity, Magnetic, Drift }
-
-    [CreateAssetMenu(menuName = "Ocean Battle Royale/Mine Data")]
-    public class MineData : ScriptableObject
-    {
-        public string DisplayName;
-        public MineType Type;
-        public Sprite Icon;
-
-        [Header("Stats")]
-        public float Damage = 100f;
-        public float TriggerRadius = 5f;
-        public float Lifetime = 60f;
-        public int LevelPenalty = 1;
-        public float Cooldown = 10f;
-        public int MaxMines = 3;
-
-        [Header("Visuals")]
-        public GameObject MinePrefab;
-        public GameObject ExplosionPrefab;
-        public AudioClip DeploySound;
-        public AudioClip ExplosionSound;
-    }
-
-    public class MineSystem : NetworkBehaviour
+    public class MineSystem : MonoBehaviour
     {
         [Header("Configuration")]
         [SerializeField] private MineData[] _availableMines;
         [SerializeField] private Transform _deployPoint;
         [SerializeField] private AudioSource _audioSource;
 
-        [Networked] private byte _currentMineIndex { get; set; }
-        [Networked] private int _activeMinesCount { get; set; }
-        [Networked] private float _nextDeployTime { get; set; }
+        private byte _currentMineIndex;
+        private int _activeMinesCount;
+        private float _nextDeployTime;
 
         private MineData _currentMine => _currentMineIndex < _availableMines.Length ? _availableMines[_currentMineIndex] : null;
 
-        public override void Spawned()
+        private void Start()
         {
-            if (Object.HasStateAuthority)
-            {
-                _currentMineIndex = 0;
-                _activeMinesCount = 0;
-            }
+            _currentMineIndex = 0;
+            _activeMinesCount = 0;
         }
 
-        public override void FixedUpdateNetwork()
-        {
-            if (!Object.HasStateAuthority) return;
-        }
-
-        [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-        public void RPC_RequestDeployMine()
+        public void RequestDeployMine()
         {
             if (_currentMine == null) return;
-            if (Runner.Time < _nextDeployTime) return;
+            if (Time.time < _nextDeployTime) return;
             if (_activeMinesCount >= _currentMine.MaxMines) return;
 
             DeployMine();
-            _nextDeployTime = Runner.Time + _currentMine.Cooldown;
+            _nextDeployTime = Time.time + _currentMine.Cooldown;
         }
 
-        [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-        public void RPC_RequestSwitchMine(byte mineIndex)
+        public void RequestSwitchMine(byte mineIndex)
         {
             if (mineIndex >= _availableMines.Length) return;
             if (mineIndex == _currentMineIndex) return;
-
             _currentMineIndex = mineIndex;
         }
 
@@ -83,11 +46,11 @@ namespace OceanBattleRoyale.Combat
             Vector3 deployPos = _deployPoint.position;
             deployPos.y = 0.5f;
 
-            var mineObj = Runner.Spawn(mine.MinePrefab, deployPos, Quaternion.identity, Object.InputAuthority);
+            GameObject mineObj = Instantiate(mine.MinePrefab, deployPos, Quaternion.identity);
             var mineScript = mineObj.GetComponent<Mine>();
             if (mineScript != null)
             {
-                mineScript.Initialize(mine, Object.InputAuthority);
+                mineScript.Initialize(mine, gameObject);
             }
 
             _activeMinesCount++;
@@ -100,46 +63,42 @@ namespace OceanBattleRoyale.Combat
 
         public void OnMineDestroyed()
         {
-            if (Object.HasStateAuthority)
-            {
-                _activeMinesCount = Mathf.Max(0, _activeMinesCount - 1);
-            }
+            _activeMinesCount = Mathf.Max(0, _activeMinesCount - 1);
         }
 
         public MineData GetCurrentMine() => _currentMine;
         public byte GetCurrentMineIndex() => _currentMineIndex;
         public int GetMaxMines() => _currentMine?.MaxMines ?? 3;
         public int GetActiveMinesCount() => _activeMinesCount;
-        public float GetCooldownRemaining() => Mathf.Max(0, _nextDeployTime - Runner.Time);
+        public float GetCooldownRemaining() => Mathf.Max(0, _nextDeployTime - Time.time);
     }
 
-    public class Mine : NetworkBehaviour
+    public class Mine : MonoBehaviour
     {
-        [Networked] private float _lifeTimer { get; set; }
-        [Networked] private NetworkBool _triggered { get; set; }
-        [Networked] private PlayerRef _owner { get; set; }
+        private float _lifeTimer;
+        private bool _triggered;
+        private GameObject _owner;
         private MineData _data;
         private MineSystem _ownerMineSystem;
 
-        public void Initialize(MineData data, PlayerRef owner)
+        public void Initialize(MineData data, GameObject owner)
         {
             _data = data;
             _owner = owner;
             _lifeTimer = data.Lifetime;
             _triggered = false;
 
-            var ownerObj = Runner.GetPlayerObject(owner);
-            if (ownerObj != null)
+            if (owner != null)
             {
-                _ownerMineSystem = ownerObj.GetComponent<MineSystem>();
+                _ownerMineSystem = owner.GetComponent<MineSystem>();
             }
         }
 
-        public override void FixedUpdateNetwork()
+        private void Update()
         {
             if (_triggered) return;
 
-            _lifeTimer -= Runner.DeltaTime;
+            _lifeTimer -= Time.deltaTime;
 
             if (_lifeTimer <= 0)
             {
@@ -158,7 +117,7 @@ namespace OceanBattleRoyale.Combat
             foreach (var hit in hits)
             {
                 var ship = hit.GetComponentInParent<NetworkedShip>();
-                if (ship != null && ship.Object.InputAuthority != _owner && ship.IsAlive)
+                if (ship != null && ship.gameObject != _owner && ship.IsAlive)
                 {
                     Trigger(ship);
                     return;
@@ -177,7 +136,7 @@ namespace OceanBattleRoyale.Combat
 
             if (_data.Type == MineType.Drift)
             {
-                transform.position += Vector3.forward * 0.5f * Runner.DeltaTime;
+                transform.position += Vector3.forward * 0.5f * Time.deltaTime;
             }
         }
 
@@ -185,9 +144,9 @@ namespace OceanBattleRoyale.Combat
         {
             _triggered = true;
 
-            target.RPC_TakeDamage(_data.Damage, _owner);
+            target.TakeDamage(_data.Damage);
 
-            var targetProgression = target.GetComponent<ShipProgression>();
+            var targetProgression = target.GetComponent<Ship.ShipProgression>();
             if (targetProgression != null)
             {
                 targetProgression.AddLevelPenalty(_data.LevelPenalty);
@@ -195,7 +154,7 @@ namespace OceanBattleRoyale.Combat
 
             if (_data.ExplosionPrefab != null)
             {
-                Runner.Spawn(_data.ExplosionPrefab, transform.position, Quaternion.identity);
+                Instantiate(_data.ExplosionPrefab, transform.position, Quaternion.identity);
             }
 
             if (_data.ExplosionSound != null)
@@ -203,7 +162,12 @@ namespace OceanBattleRoyale.Combat
                 AudioSource.PlayClipAtPoint(_data.ExplosionSound, transform.position);
             }
 
-            Runner.Despawn(Object);
+            if (_ownerMineSystem != null)
+            {
+                _ownerMineSystem.OnMineDestroyed();
+            }
+
+            Destroy(gameObject);
         }
 
         private void Expire()
@@ -212,15 +176,15 @@ namespace OceanBattleRoyale.Combat
             {
                 _ownerMineSystem.OnMineDestroyed();
             }
-            Runner.Despawn(Object);
+            Destroy(gameObject);
         }
 
         private void OnTriggerEnter(Collider other)
         {
-            if (!_triggered && _data.Type == MineType.Contact)
+            if (!_triggered && _data != null && _data.Type == MineType.Contact)
             {
                 var ship = other.GetComponentInParent<NetworkedShip>();
-                if (ship != null && ship.Object.InputAuthority != _owner && ship.IsAlive)
+                if (ship != null && ship.gameObject != _owner && ship.IsAlive)
                 {
                     Trigger(ship);
                 }

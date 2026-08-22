@@ -1,49 +1,40 @@
 using UnityEngine;
-using Fusion;
 
 namespace OceanBattleRoyale.Ship
 {
-    public class ShipProgression : NetworkBehaviour
+    public class ShipProgression : MonoBehaviour
     {
         [Header("Level Curve")]
         [SerializeField] private AnimationCurve _xpCurve;
         [SerializeField] private ShipTierData[] _tierData;
 
-        [Networked] public int CurrentLevel { get; private set; }
-        [Networked] public int CurrentXP { get; private set; }
-        [Networked] public int CurrentTier { get; private set; }
+        public int CurrentLevel { get; private set; }
+        public int CurrentXP { get; private set; }
+        public int CurrentTier { get; private set; }
 
         private NetworkedShip _networkedShip;
         private ShipPhysics _shipPhysics;
 
-        public override void Spawned()
+        private void Start()
         {
             _networkedShip = GetComponent<NetworkedShip>();
             _shipPhysics = GetComponent<ShipPhysics>();
 
-            if (Object.HasStateAuthority)
-            {
-                CurrentLevel = 1;
-                CurrentXP = 0;
-                CurrentTier = 1;
-                ApplyTierStats();
-            }
+            CurrentLevel = 1;
+            CurrentXP = 0;
+            CurrentTier = 1;
+            ApplyTierStats();
         }
 
         public void AddXP(int amount)
         {
-            if (!Object.HasStateAuthority) return;
-
             CurrentXP += amount;
             CheckLevelUp();
         }
 
         public void AddLevelPenalty(int levels)
         {
-            if (!Object.HasStateAuthority) return;
-
             int newLevel = Mathf.Max(1, CurrentLevel - levels);
-            int xpLoss = CurrentXP;
 
             CurrentLevel = newLevel;
             CurrentXP = 0;
@@ -55,8 +46,6 @@ namespace OceanBattleRoyale.Ship
                 ApplyTierStats();
                 UpdateVisuals();
             }
-
-            _networkedShip.RPC_AddXP(0); // Sync
         }
 
         private void CheckLevelUp()
@@ -76,8 +65,6 @@ namespace OceanBattleRoyale.Ship
                     UpdateVisuals();
                 }
             }
-
-            _networkedShip.RPC_AddXP(0); // Sync
         }
 
         private void ApplyTierStats()
@@ -102,7 +89,7 @@ namespace OceanBattleRoyale.Ship
 
         private int GetXPForLevel(int level)
         {
-            if (_xpCurve.length > 0)
+            if (_xpCurve != null && _xpCurve.length > 0)
             {
                 return Mathf.RoundToInt(_xpCurve.Evaluate(level));
             }
@@ -120,9 +107,10 @@ namespace OceanBattleRoyale.Ship
 
         private ShipTierData GetTierData(int tier)
         {
+            if (_tierData == null) return null;
             foreach (var t in _tierData)
             {
-                if (t.Tier == tier) return t;
+                if (t != null && t.Tier == tier) return t;
             }
             return null;
         }

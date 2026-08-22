@@ -2,6 +2,9 @@ using UnityEngine;
 
 namespace OceanBattleRoyale.Combat
 {
+    public enum WeaponType { Light, Medium, Heavy }
+    public enum FireMode { Automatic, SemiAuto, Burst, Charge }
+
     [CreateAssetMenu(menuName = "Ocean Battle Royale/Weapon Data")]
     public class WeaponData : ScriptableObject
     {

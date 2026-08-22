@@ -1,46 +1,24 @@
 using UnityEngine;
-using Fusion;
-using System.Collections.Generic;
 
 namespace OceanBattleRoyale.World
 {
-    public class SpawnTest : NetworkBehaviour
+    public class SpawnTest : MonoBehaviour
     {
         [Header("Spawn Settings")]
-        [SerializeField] private NetworkedShip _shipPrefab;
+        [SerializeField] private GameObject _shipPrefab;
         [SerializeField] private int _botCount = 50;
         [SerializeField] private float _spawnRadius = 500f;
         [SerializeField] private float _safeZoneRadius = 50f;
 
-        [Header("Interest Management")]
-        [SerializeField] private float _interestRadius = 100f;
-        [SerializeField] private float _viewRadius = 200f;
-
-        private List<NetworkedShip> _spawnedShips = new List<NetworkedShip>();
+        private System.Collections.Generic.List<GameObject> _spawnedShips = new System.Collections.Generic.List<GameObject>();
         private bool _hasSpawned = false;
 
-        public override void Spawned()
+        private void Start()
         {
-            if (Object.HasStateAuthority)
-            {
-                SetupInterestManagement();
-            }
-        }
-
-        public override void FixedUpdateNetwork()
-        {
-            if (Object.HasStateAuthority && !_hasSpawned && Runner.ActivePlayers.Count > 0)
+            if (!_hasSpawned)
             {
                 SpawnBots();
                 _hasSpawned = true;
-            }
-        }
-
-        private void SetupInterestManagement()
-        {
-            foreach (var player in Runner.ActivePlayers)
-            {
-                Runner.SetPlayerAreaOfInterest(player, Vector3.zero, _viewRadius);
             }
         }
 
@@ -49,10 +27,10 @@ namespace OceanBattleRoyale.World
             for (int i = 0; i < _botCount; i++)
             {
                 Vector3 spawnPos = GetRandomSpawnPosition();
-                var ship = Runner.Spawn(_shipPrefab, spawnPos, Quaternion.identity, PlayerRef.None);
+                GameObject ship = Instantiate(_shipPrefab, spawnPos, Quaternion.identity);
                 _spawnedShips.Add(ship);
 
-                var botAI = ship.gameObject.AddComponent<BotAI>();
+                var botAI = ship.AddComponent<BotAI>();
                 botAI.Initialize(spawnPos, _spawnRadius);
             }
 
@@ -73,7 +51,7 @@ namespace OceanBattleRoyale.World
             return pos;
         }
 
-        public override void Despawned(NetworkRunner runner, bool hasState)
+        private void OnDestroy()
         {
             _spawnedShips.Clear();
         }

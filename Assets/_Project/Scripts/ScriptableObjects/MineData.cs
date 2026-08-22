@@ -2,6 +2,8 @@ using UnityEngine;
 
 namespace OceanBattleRoyale.Combat
 {
+    public enum MineType { Contact, Proximity, Magnetic, Drift }
+
     [CreateAssetMenu(menuName = "Ocean Battle Royale/Mine Data")]
     public class MineData : ScriptableObject
     {

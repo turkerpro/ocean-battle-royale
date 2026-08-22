@@ -115,7 +115,7 @@ namespace OceanBattleRoyale.Ship
         {
             switch (tier)
             {
-                case 1: // Dinghy
+                case 1:
                     Mass = 5000f;
                     MaxSpeed = 12f;
                     Acceleration = 3f;
@@ -123,7 +123,7 @@ namespace OceanBattleRoyale.Ship
                     LinearDrag = 0.3f;
                     AngularDrag = 1.5f;
                     break;
-                case 2: // Corvette
+                case 2:
                     Mass = 15000f;
                     MaxSpeed = 10f;
                     Acceleration = 2f;
@@ -131,7 +131,7 @@ namespace OceanBattleRoyale.Ship
                     LinearDrag = 0.5f;
                     AngularDrag = 2f;
                     break;
-                case 3: // Frigate
+                case 3:
                     Mass = 30000f;
                     MaxSpeed = 9f;
                     Acceleration = 1.5f;
@@ -139,7 +139,7 @@ namespace OceanBattleRoyale.Ship
                     LinearDrag = 0.7f;
                     AngularDrag = 3f;
                     break;
-                case 4: // Cruiser
+                case 4:
                     Mass = 50000f;
                     MaxSpeed = 8f;
                     Acceleration = 1f;
@@ -147,7 +147,7 @@ namespace OceanBattleRoyale.Ship
                     LinearDrag = 1f;
                     AngularDrag = 4f;
                     break;
-                case 5: // Battleship
+                case 5:
                     Mass = 80000f;
                     MaxSpeed = 6f;
                     Acceleration = 0.5f;

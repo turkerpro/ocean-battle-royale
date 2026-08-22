@@ -1,60 +1,27 @@
 using UnityEngine;
-using Fusion;
 using System.Collections.Generic;
 
 namespace OceanBattleRoyale.Combat
 {
-    public enum WeaponType { Light, Medium, Heavy }
-    public enum FireMode { Automatic, SemiAuto, Burst, Charge }
-
-    [CreateAssetMenu(menuName = "Ocean Battle Royale/Weapon Data")]
-    public class WeaponData : ScriptableObject
-    {
-        public string DisplayName;
-        public WeaponType Type;
-        public FireMode FireMode;
-        public Sprite Icon;
-
-        [Header("Stats")]
-        public float Range = 50f;
-        public int Damage = 20;
-        public float Cooldown = 0.5f;
-        public float ProjectileSpeed = 100f;
-        public int ProjectilesPerShot = 1;
-        public float SpreadAngle = 0f;
-        public bool Homing = false;
-        public int MaxAmmo = -1;
-        public float ReloadTime = 2f;
-
-        [Header("Visuals")]
-        public GameObject ProjectilePrefab;
-        public GameObject MuzzleFlashPrefab;
-        public AudioClip FireSound;
-        public AudioClip ReloadSound;
-    }
-
-    public class WeaponSystem : NetworkBehaviour
+    public class WeaponSystem : MonoBehaviour
     {
         [Header("Configuration")]
         [SerializeField] private WeaponData[] _availableWeapons;
         [SerializeField] private Transform[] _firePoints;
         [SerializeField] private AudioSource _audioSource;
 
-        [Networked] private byte _currentWeaponIndex { get; set; }
-        [Networked] private int _currentAmmo { get; set; }
-        [Networked] private NetworkBool _isReloading { get; set; }
-        [Networked] private float _nextFireTime { get; set; }
+        private byte _currentWeaponIndex;
+        private int _currentAmmo;
+        private bool _isReloading;
+        private float _nextFireTime;
 
         private WeaponData _currentWeapon => _currentWeaponIndex < _availableWeapons.Length ? _availableWeapons[_currentWeaponIndex] : null;
         private Dictionary<WeaponData, int> _ammoReserves = new Dictionary<WeaponData, int>();
 
-        public override void Spawned()
+        private void Start()
         {
-            if (Object.HasStateAuthority)
-            {
-                InitializeAmmo();
-                _currentWeaponIndex = 0;
-            }
+            InitializeAmmo();
+            _currentWeaponIndex = 0;
         }
 
         private void InitializeAmmo()
@@ -82,24 +49,13 @@ namespace OceanBattleRoyale.Combat
             }
         }
 
-        public override void FixedUpdateNetwork()
+        private void Update()
         {
-            if (!Object.HasStateAuthority) return;
-
-            if (_isReloading)
-            {
-                // Reload handled by coroutine on host
-                return;
-            }
-
-            if (_nextFireTime > 0 && Runner.Time < _nextFireTime)
-            {
-                return;
-            }
+            if (_isReloading) return;
+            if (_nextFireTime > 0 && Time.time < _nextFireTime) return;
         }
 
-        [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-        public void RPC_RequestFire(Vector3 aimDirection)
+        public void RequestFire(Vector3 aimDirection)
         {
             if (_isReloading || _currentWeapon == null) return;
 
@@ -109,10 +65,10 @@ namespace OceanBattleRoyale.Combat
                 return;
             }
 
-            if (Runner.Time < _nextFireTime) return;
+            if (Time.time < _nextFireTime) return;
 
             Fire(aimDirection);
-            _nextFireTime = Runner.Time + _currentWeapon.Cooldown;
+            _nextFireTime = Time.time + _currentWeapon.Cooldown;
 
             if (_currentWeapon.MaxAmmo > 0)
             {
@@ -121,8 +77,7 @@ namespace OceanBattleRoyale.Combat
             }
         }
 
-        [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-        public void RPC_RequestReload()
+        public void RequestReload()
         {
             if (_isReloading || _currentWeapon == null || _currentWeapon.MaxAmmo <= 0) return;
             if (_currentAmmo >= _currentWeapon.MaxAmmo) return;
@@ -130,8 +85,7 @@ namespace OceanBattleRoyale.Combat
             StartReload();
         }
 
-        [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-        public void RPC_RequestSwitchWeapon(byte weaponIndex)
+        public void RequestSwitchWeapon(byte weaponIndex)
         {
             if (weaponIndex >= _availableWeapons.Length) return;
             if (_isReloading) return;
@@ -139,7 +93,7 @@ namespace OceanBattleRoyale.Combat
 
             _currentWeaponIndex = weaponIndex;
             UpdateCurrentAmmo();
-            _nextFireTime = Runner.Time + 0.5f; // Switch delay
+            _nextFireTime = Time.time + 0.5f;
         }
 
         private void Fire(Vector3 aimDirection)
@@ -166,7 +120,7 @@ namespace OceanBattleRoyale.Combat
         {
             if (weapon.ProjectilePrefab == null) return;
 
-            var projectile = Runner.Spawn(weapon.ProjectilePrefab, position, Quaternion.LookRotation(direction), Object.InputAuthority);
+            GameObject projectile = Instantiate(weapon.ProjectilePrefab, position, Quaternion.LookRotation(direction));
             var projScript = projectile.GetComponent<Projectile>();
             if (projScript != null)
             {
@@ -198,7 +152,7 @@ namespace OceanBattleRoyale.Combat
         private System.Collections.IEnumerator ReloadCoroutine()
         {
             var weapon = _currentWeapon;
-            if (weapon == null || weapon.ReloadSound != null && _audioSource != null)
+            if (weapon != null && weapon.ReloadSound != null && _audioSource != null)
             {
                 _audioSource.PlayOneShot(weapon.ReloadSound);
             }
@@ -223,13 +177,13 @@ namespace OceanBattleRoyale.Combat
         public WeaponData GetWeaponData(int index) => index < _availableWeapons.Length ? _availableWeapons[index] : null;
     }
 
-    public class Projectile : NetworkBehaviour
+    public class Projectile : MonoBehaviour
     {
-        [Networked] private Vector3 _velocity { get; set; }
-        [Networked] private int _damage { get; set; }
-        [Networked] private float _remainingDistance { get; set; }
-        [Networked] private NetworkBool _homing { get; set; }
-        [Networked] private NetworkBool _hasHit { get; set; }
+        private Vector3 _velocity;
+        private int _damage;
+        private float _remainingDistance;
+        private bool _homing;
+        private bool _hasHit;
 
         private float _lifeTime = 10f;
 
@@ -241,11 +195,12 @@ namespace OceanBattleRoyale.Combat
             _homing = homing;
         }
 
-        public override void FixedUpdateNetwork()
+        private void Update()
         {
             if (_hasHit) return;
 
-            Vector3 move = _velocity * Runner.DeltaTime;
+            float deltaTime = Time.deltaTime;
+            Vector3 move = _velocity * deltaTime;
             float moveDist = move.magnitude;
 
             if (moveDist > _remainingDistance)
@@ -269,10 +224,10 @@ namespace OceanBattleRoyale.Combat
 
             if (_remainingDistance <= 0 || _lifeTime <= 0)
             {
-                Runner.Despawn(Object);
+                Destroy(gameObject);
             }
 
-            _lifeTime -= Runner.DeltaTime;
+            _lifeTime -= deltaTime;
         }
 
         private void OnHit(RaycastHit hit)
@@ -282,10 +237,10 @@ namespace OceanBattleRoyale.Combat
             var damageable = hit.collider.GetComponentInParent<Damageable>();
             if (damageable != null)
             {
-                damageable.TakeDamage(_damage, Object.InputAuthority);
+                damageable.TakeDamage(_damage);
             }
 
-            Runner.Despawn(Object);
+            Destroy(gameObject);
         }
     }
 }

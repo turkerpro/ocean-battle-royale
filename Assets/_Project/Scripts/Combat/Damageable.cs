@@ -1,14 +1,13 @@
 using UnityEngine;
-using Fusion;
 
 namespace OceanBattleRoyale.Combat
 {
-    public class Damageable : NetworkBehaviour
+    public class Damageable : MonoBehaviour
     {
         [Header("Health")]
         [SerializeField] private float _maxHealth = 100f;
-        [Networked] public float Health { get; private set; }
-        [Networked] public NetworkBool IsAlive { get; private set; }
+        public float Health { get; private set; }
+        public bool IsAlive { get; private set; }
 
         [Header("Damage")]
         [SerializeField] private float _armor = 0f;
@@ -20,15 +19,15 @@ namespace OceanBattleRoyale.Combat
         public float MaxHealth => _maxHealth;
         public int TeamId => _teamId;
 
-        public override void Spawned()
+        private void Start()
         {
             Health = _maxHealth;
             IsAlive = true;
         }
 
-        public void TakeDamage(float damage, PlayerRef attacker)
+        public void TakeDamage(float damage)
         {
-            if (!IsAlive || !Object.HasStateAuthority) return;
+            if (!IsAlive) return;
 
             float finalDamage = Mathf.Max(0, damage - _armor);
             Health -= finalDamage;
@@ -36,58 +35,50 @@ namespace OceanBattleRoyale.Combat
 
             if (Health <= 0)
             {
-                Die(attacker);
+                Die();
             }
 
-            RPC_ShowDamageNumbers(transform.position, finalDamage);
+            ShowDamageNumbers(finalDamage);
         }
 
-        private void Die(PlayerRef killer)
+        private void Die()
         {
             IsAlive = false;
 
             if (_deathEffectPrefab != null)
             {
-                Runner.Spawn(_deathEffectPrefab, transform.position, transform.rotation);
+                Instantiate(_deathEffectPrefab, transform.position, transform.rotation);
             }
 
-            RPC_OnDeath(killer);
-            Runner.Despawn(Object, 2f);
+            var gm = FindObjectOfType<OceanBattleRoyale.Core.GameManager>();
+            if (gm != null)
+            {
+                gm.OnShipDied(gameObject);
+            }
+
+            Destroy(gameObject, 2f);
         }
 
-        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-        private void RPC_ShowDamageNumbers(Vector3 position, float damage)
+        private void ShowDamageNumbers(float damage)
         {
-            // Spawn floating damage text
             var canvas = FindObjectOfType<Canvas>();
             if (canvas != null)
             {
                 var textGO = new GameObject("DamageText");
                 textGO.transform.SetParent(canvas.transform);
-                textGO.transform.position = Camera.main.WorldToScreenPoint(position + Vector3.up * 2f);
-                var tmp = textGO.AddComponent<TextMeshProUGUI>();
+                textGO.transform.position = Camera.main.WorldToScreenPoint(transform.position + Vector3.up * 2f);
+                var tmp = textGO.AddComponent<TMPro.TextMeshProUGUI>();
                 tmp.text = Mathf.CeilToInt(damage).ToString();
                 tmp.fontSize = 24;
                 tmp.color = Color.red;
-                tmp.alignment = TextAlignmentOptions.Center;
+                tmp.alignment = TMPro.TextAlignmentOptions.Center;
                 Destroy(textGO, 1f);
-            }
-        }
-
-        [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-        private void RPC_OnDeath(PlayerRef killer)
-        {
-            // Notify GameManager, update kill feed, etc.
-            var gm = FindObjectOfType<OceanBattleRoyale.Core.GameManager>();
-            if (gm != null && Object.HasInputAuthority)
-            {
-                gm.OnPlayerDied(Object.InputAuthority, killer);
             }
         }
 
         public void Heal(float amount)
         {
-            if (!IsAlive || !Object.HasStateAuthority) return;
+            if (!IsAlive) return;
             Health = Mathf.Min(_maxHealth, Health + amount);
         }
 

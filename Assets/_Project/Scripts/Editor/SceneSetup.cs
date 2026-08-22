@@ -2,8 +2,6 @@ using UnityEngine;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine.SceneManagement;
-using UnityEngine.Rendering;
-using UnityEngine.Rendering.Universal;
 using UnityEngine.UI;
 using TMPro;
 
@@ -18,7 +16,6 @@ namespace OceanBattleRoyale.Editor
 
             SetupLighting();
             SetupOcean();
-            SetupNetworkRunner();
             SetupSpawnTest();
             SetupGameManager();
             CreatePlayerShipPrefab();
@@ -39,7 +36,6 @@ namespace OceanBattleRoyale.Editor
         public static void SetupMainMenuScene()
         {
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-
             SetupLighting();
             CreateMainMenuUI();
 
@@ -122,15 +118,6 @@ namespace OceanBattleRoyale.Editor
             serializedManager.ApplyModifiedProperties();
         }
 
-        private static void SetupNetworkRunner()
-        {
-            var runnerGO = new GameObject("NetworkRunner");
-            var runner = runnerGO.AddComponent<NetworkRunner>();
-            runner.name = "NetworkRunner";
-            runnerGO.AddComponent<NetworkSceneManagerDefault>();
-            runnerGO.AddComponent<NetworkObjectPoolDefault>();
-        }
-
         private static void SetupSpawnTest()
         {
             var spawnGO = new GameObject("SpawnTest");
@@ -144,8 +131,6 @@ namespace OceanBattleRoyale.Editor
             serialized.FindProperty("_botCount").intValue = 50;
             serialized.FindProperty("_spawnRadius").floatValue = 500f;
             serialized.FindProperty("_safeZoneRadius").floatValue = 50f;
-            serialized.FindProperty("_interestRadius").floatValue = 100f;
-            serialized.FindProperty("_viewRadius").floatValue = 200f;
             serialized.ApplyModifiedProperties();
         }
 
@@ -172,20 +157,19 @@ namespace OceanBattleRoyale.Editor
             System.IO.Directory.CreateDirectory("Assets/_Project/Resources/Prefabs");
 
             var shipGO = new GameObject("PlayerShip");
-            var networkedShip = shipGO.AddComponent<OceanBattleRoyale.Network.NetworkedShip>();
-            var physics = shipGO.AddComponent<OceanBattleRoyale.Ship.ShipPhysics>();
-            var localController = shipGO.AddComponent<OceanBattleRoyale.Network.LocalPlayerController>();
-            var weaponSystem = shipGO.AddComponent<OceanBattleRoyale.Combat.WeaponSystem>();
-            var mineSystem = shipGO.AddComponent<OceanBattleRoyale.Combat.MineSystem>();
-            var progression = shipGO.AddComponent<OceanBattleRoyale.Ship.ShipProgression>();
-            var damageable = shipGO.AddComponent<OceanBattleRoyale.Combat.Damageable>();
+            shipGO.AddComponent<OceanBattleRoyale.Network.NetworkedShip>();
+            shipGO.AddComponent<OceanBattleRoyale.Ship.ShipPhysics>();
+            shipGO.AddComponent<OceanBattleRoyale.Network.LocalPlayerController>();
+            shipGO.AddComponent<OceanBattleRoyale.Combat.WeaponSystem>();
+            shipGO.AddComponent<OceanBattleRoyale.Combat.MineSystem>();
+            shipGO.AddComponent<OceanBattleRoyale.Ship.ShipProgression>();
+            shipGO.AddComponent<OceanBattleRoyale.Combat.Damageable>();
 
             var rb = shipGO.AddComponent<Rigidbody>();
             rb.mass = 5000f; rb.drag = 0.3f; rb.angularDrag = 1.5f;
             rb.useGravity = false;
             rb.constraints = RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
 
-            // Hull
             var hullGO = GameObject.CreatePrimitive(PrimitiveType.Cube);
             hullGO.name = "Hull";
             hullGO.transform.SetParent(shipGO.transform);
@@ -195,9 +179,8 @@ namespace OceanBattleRoyale.Editor
             var hullMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
             hullMat.color = new Color(0.4f, 0.3f, 0.2f);
             hullRenderer.material = hullMat;
-            DestroyImmediate(hullGO.GetComponent<Collider>());
+            Object.DestroyImmediate(hullGO.GetComponent<Collider>());
 
-            // Turret
             var turretGO = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             turretGO.name = "Turret";
             turretGO.transform.SetParent(shipGO.transform);
@@ -207,9 +190,8 @@ namespace OceanBattleRoyale.Editor
             var turretMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
             turretMat.color = new Color(0.5f, 0.4f, 0.3f);
             turretRenderer.material = turretMat;
-            DestroyImmediate(turretGO.GetComponent<Collider>());
+            Object.DestroyImmediate(turretGO.GetComponent<Collider>());
 
-            // Fire Points
             var firePointGO = new GameObject("FirePoint");
             firePointGO.transform.SetParent(shipGO.transform);
             firePointGO.transform.localPosition = new Vector3(0, 2f, 5f);
@@ -218,12 +200,10 @@ namespace OceanBattleRoyale.Editor
             firePointGO2.transform.SetParent(shipGO.transform);
             firePointGO2.transform.localPosition = new Vector3(0, 2f, -5f);
 
-            // Deploy Point
             var deployPointGO = new GameObject("DeployPoint");
             deployPointGO.transform.SetParent(shipGO.transform);
             deployPointGO.transform.localPosition = new Vector3(0, 0.5f, -5f);
 
-            // Wake Trail
             var trailGO = new GameObject("WakeTrail");
             trailGO.transform.SetParent(shipGO.transform);
             trailGO.transform.localPosition = new Vector3(0, 0.2f, -4f);
@@ -233,19 +213,17 @@ namespace OceanBattleRoyale.Editor
             trail.endWidth = 0f;
             trail.material = new Material(Shader.Find("Sprites/Default")) { color = new Color(1, 1, 1, 0.3f) };
 
-            // Audio
             var audio = shipGO.AddComponent<AudioSource>();
             audio.spatialBlend = 1f;
             audio.maxDistance = 50f;
 
-            // Assign references
-            var serializedShip = new SerializedObject(networkedShip);
+            var serializedShip = new SerializedObject(shipGO.GetComponent<OceanBattleRoyale.Network.NetworkedShip>());
             serializedShip.FindProperty("_hullRenderer").objectReferenceValue = hullRenderer;
             serializedShip.FindProperty("_turretRenderer").objectReferenceValue = turretRenderer;
             serializedShip.FindProperty("_wakeTrail").objectReferenceValue = trail;
             serializedShip.ApplyModifiedProperties();
 
-            var serializedWeapon = new SerializedObject(weaponSystem);
+            var serializedWeapon = new SerializedObject(shipGO.GetComponent<OceanBattleRoyale.Combat.WeaponSystem>());
             serializedWeapon.FindProperty("_firePoints").arraySize = 2;
             serializedWeapon.FindProperty("_firePoints").GetArrayElementAtIndex(0).objectReferenceValue = firePointGO.transform;
             serializedWeapon.FindProperty("_firePoints").GetArrayElementAtIndex(1).objectReferenceValue = firePointGO2.transform;
@@ -258,7 +236,7 @@ namespace OceanBattleRoyale.Editor
             }
             serializedWeapon.ApplyModifiedProperties();
 
-            var serializedMine = new SerializedObject(mineSystem);
+            var serializedMine = new SerializedObject(shipGO.GetComponent<OceanBattleRoyale.Combat.MineSystem>());
             serializedMine.FindProperty("_deployPoint").objectReferenceValue = deployPointGO.transform;
             serializedMine.FindProperty("_audioSource").objectReferenceValue = audio;
             serializedMine.FindProperty("_availableMines").arraySize = 4;
@@ -269,7 +247,7 @@ namespace OceanBattleRoyale.Editor
             }
             serializedMine.ApplyModifiedProperties();
 
-            var serializedProgression = new SerializedObject(progression);
+            var serializedProgression = new SerializedObject(shipGO.GetComponent<OceanBattleRoyale.Ship.ShipProgression>());
             var defaultTiers = new OceanBattleRoyale.Ship.ShipTierData[5];
             for (int i = 0; i < 5; i++) defaultTiers[i] = OceanBattleRoyale.Ship.ShipTierData.GetDefaultTier(i + 1);
             serializedProgression.FindProperty("_tierData").arraySize = 5;
@@ -279,12 +257,12 @@ namespace OceanBattleRoyale.Editor
             }
             serializedProgression.ApplyModifiedProperties();
 
-            var serializedDamageable = new SerializedObject(damageable);
+            var serializedDamageable = new SerializedObject(shipGO.GetComponent<OceanBattleRoyale.Combat.Damageable>());
             serializedDamageable.FindProperty("_maxHealth").floatValue = 100f;
             serializedDamageable.ApplyModifiedProperties();
 
             var prefab = PrefabUtility.SaveAsPrefabAsset(shipGO, prefabPath);
-            DestroyImmediate(shipGO);
+            Object.DestroyImmediate(shipGO);
             AssetDatabase.Refresh();
 
             return prefab;
@@ -296,9 +274,9 @@ namespace OceanBattleRoyale.Editor
             System.IO.Directory.CreateDirectory("Assets/_Project/Resources/Prefabs");
 
             var shipGO = new GameObject("BotShip");
-            var networkedShip = shipGO.AddComponent<OceanBattleRoyale.Network.NetworkedShip>();
-            var physics = shipGO.AddComponent<OceanBattleRoyale.Ship.ShipPhysics>();
-            var damageable = shipGO.AddComponent<OceanBattleRoyale.Combat.Damageable>();
+            shipGO.AddComponent<OceanBattleRoyale.Network.NetworkedShip>();
+            shipGO.AddComponent<OceanBattleRoyale.Ship.ShipPhysics>();
+            shipGO.AddComponent<OceanBattleRoyale.Combat.Damageable>();
 
             var rb = shipGO.AddComponent<Rigidbody>();
             rb.mass = 5000f; rb.drag = 0.3f; rb.angularDrag = 1.5f;
@@ -314,7 +292,7 @@ namespace OceanBattleRoyale.Editor
             var hullMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
             hullMat.color = new Color(0.3f, 0.2f, 0.4f);
             hullRenderer.material = hullMat;
-            DestroyImmediate(hullGO.GetComponent<Collider>());
+            Object.DestroyImmediate(hullGO.GetComponent<Collider>());
 
             var turretGO = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             turretGO.name = "Turret";
@@ -325,19 +303,19 @@ namespace OceanBattleRoyale.Editor
             var turretMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
             turretMat.color = new Color(0.4f, 0.3f, 0.5f);
             turretRenderer.material = turretMat;
-            DestroyImmediate(turretGO.GetComponent<Collider>());
+            Object.DestroyImmediate(turretGO.GetComponent<Collider>());
 
-            var serializedShip = new SerializedObject(networkedShip);
+            var serializedShip = new SerializedObject(shipGO.GetComponent<OceanBattleRoyale.Network.NetworkedShip>());
             serializedShip.FindProperty("_hullRenderer").objectReferenceValue = hullRenderer;
             serializedShip.FindProperty("_turretRenderer").objectReferenceValue = turretRenderer;
             serializedShip.ApplyModifiedProperties();
 
-            var serializedDamageable = new SerializedObject(damageable);
+            var serializedDamageable = new SerializedObject(shipGO.GetComponent<OceanBattleRoyale.Combat.Damageable>());
             serializedDamageable.FindProperty("_maxHealth").floatValue = 100f;
             serializedDamageable.ApplyModifiedProperties();
 
             var prefab = PrefabUtility.SaveAsPrefabAsset(shipGO, prefabPath);
-            DestroyImmediate(shipGO);
+            Object.DestroyImmediate(shipGO);
             AssetDatabase.Refresh();
 
             return prefab;
@@ -346,16 +324,10 @@ namespace OceanBattleRoyale.Editor
         private static void CreateWeaponPrefabs()
         {
             System.IO.Directory.CreateDirectory("Assets/_Project/Resources/Prefabs/Weapons");
-
-            // Cannon projectile
             CreateProjectilePrefab("CannonProjectile", 0.3f, Color.yellow, 5f);
-            // Machine gun projectile
             CreateProjectilePrefab("MGProjectile", 0.1f, Color.white, 2f);
-            // Missile projectile
             CreateProjectilePrefab("MissileProjectile", 0.2f, Color.red, 3f);
-            // Laser projectile
             CreateProjectilePrefab("LaserProjectile", 0.05f, Color.cyan, 1f);
-            // Torpedo projectile
             CreateProjectilePrefab("TorpedoProjectile", 0.4f, Color.green, 4f);
         }
 
@@ -372,11 +344,11 @@ namespace OceanBattleRoyale.Editor
             trail.endWidth = 0f;
             trail.material = new Material(Shader.Find("Sprites/Default")) { color = color };
 
-            var projectile = go.AddComponent<OceanBattleRoyale.Combat.Projectile>();
+            go.AddComponent<OceanBattleRoyale.Combat.Projectile>();
 
-            var prefabPath = $"Assets/_Project/Resources/Prefabs/Weapons/{name}.prefab";
+            var prefabPath = "Assets/_Project/Resources/Prefabs/Weapons/" + name + ".prefab";
             PrefabUtility.SaveAsPrefabAsset(go, prefabPath);
-            DestroyImmediate(go);
+            Object.DestroyImmediate(go);
         }
 
         private static Sprite CreateCircleSprite(int size, Color color)
@@ -402,29 +374,28 @@ namespace OceanBattleRoyale.Editor
         private static void CreateMinePrefabs()
         {
             System.IO.Directory.CreateDirectory("Assets/_Project/Resources/Prefabs/Mines");
-
-            CreateMinePrefab("ContactMine", MineType.Contact, Color.red, 0.5f);
-            CreateMinePrefab("ProximityMine", MineType.Proximity, Color.yellow, 0.6f);
-            CreateMinePrefab("MagneticMine", MineType.Magnetic, Color.blue, 0.5f);
-            CreateMinePrefab("DriftMine", MineType.Drift, Color.green, 0.4f);
+            CreateMinePrefab("ContactMine", OceanBattleRoyale.Combat.MineType.Contact, Color.red, 0.5f);
+            CreateMinePrefab("ProximityMine", OceanBattleRoyale.Combat.MineType.Proximity, Color.yellow, 0.6f);
+            CreateMinePrefab("MagneticMine", OceanBattleRoyale.Combat.MineType.Magnetic, Color.blue, 0.5f);
+            CreateMinePrefab("DriftMine", OceanBattleRoyale.Combat.MineType.Drift, Color.green, 0.4f);
         }
 
-        private static void CreateMinePrefab(string name, MineType type, Color color, float size)
+        private static void CreateMinePrefab(string name, OceanBattleRoyale.Combat.MineType type, Color color, float size)
         {
             var go = new GameObject(name);
             var sr = go.AddComponent<SpriteRenderer>();
             sr.sprite = CreateCircleSprite((int)(size * 100), color);
             sr.sortingOrder = 5;
 
-            var collider = go.AddComponent<CircleCollider2D>();
+            var collider = go.AddComponent<SphereCollider>();
             collider.isTrigger = true;
             collider.radius = size;
 
-            var mine = go.AddComponent<OceanBattleRoyale.Combat.Mine>();
+            go.AddComponent<OceanBattleRoyale.Combat.Mine>();
 
-            var prefabPath = $"Assets/_Project/Resources/Prefabs/Mines/{name}.prefab";
+            var prefabPath = "Assets/_Project/Resources/Prefabs/Mines/" + name + ".prefab";
             PrefabUtility.SaveAsPrefabAsset(go, prefabPath);
-            DestroyImmediate(go);
+            Object.DestroyImmediate(go);
         }
 
         private static void CreateExplosionPrefab()
@@ -453,19 +424,17 @@ namespace OceanBattleRoyale.Editor
 
             var prefabPath = "Assets/_Project/Resources/Prefabs/ExplosionEffect.prefab";
             PrefabUtility.SaveAsPrefabAsset(go, prefabPath);
-            DestroyImmediate(go);
+            Object.DestroyImmediate(go);
         }
 
         private static void CreateMainMenuUI()
         {
-            // Canvas
             var canvasGO = new GameObject("MainMenuCanvas");
             var canvas = canvasGO.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvasGO.AddComponent<CanvasScaler>().uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             canvasGO.AddComponent<GraphicRaycaster>();
 
-            // Background
             var bgGO = new GameObject("Background");
             bgGO.transform.SetParent(canvasGO.transform);
             var bgImage = bgGO.AddComponent<Image>();
@@ -476,7 +445,6 @@ namespace OceanBattleRoyale.Editor
             bgRect.offsetMin = Vector2.zero;
             bgRect.offsetMax = Vector2.zero;
 
-            // Title
             var titleGO = new GameObject("Title");
             titleGO.transform.SetParent(canvasGO.transform);
             var titleText = titleGO.AddComponent<TextMeshProUGUI>();
@@ -490,7 +458,6 @@ namespace OceanBattleRoyale.Editor
             titleRect.anchoredPosition = Vector2.zero;
             titleRect.sizeDelta = new Vector2(800, 100);
 
-            // Buttons container
             var buttonsGO = new GameObject("Buttons");
             buttonsGO.transform.SetParent(canvasGO.transform);
             var buttonsRect = buttonsGO.GetComponent<RectTransform>();
@@ -499,24 +466,19 @@ namespace OceanBattleRoyale.Editor
             buttonsRect.anchoredPosition = Vector2.zero;
             buttonsRect.sizeDelta = new Vector2(400, 300);
 
-            // Create buttons
-            CreateButton(buttonsGO, "Quick Match", 0, () => { });
-            CreateButton(buttonsGO, "Create Lobby", -70, () => { });
-            CreateButton(buttonsGO, "Join Lobby", -140, () => { });
-            CreateButton(buttonsGO, "Settings", -210, () => { });
-            CreateButton(buttonsGO, "Quit", -280, () => { Application.Quit(); });
+            CreateButton(buttonsGO, "Quick Match", 0);
+            CreateButton(buttonsGO, "Create Lobby", -70);
+            CreateButton(buttonsGO, "Join Lobby", -140);
+            CreateButton(buttonsGO, "Settings", -210);
+            CreateButton(buttonsGO, "Quit", -280);
 
-            // Lobby Manager
             var lobbyManager = canvasGO.AddComponent<OceanBattleRoyale.Core.LobbyManager>();
             var serialized = new SerializedObject(lobbyManager);
             serialized.FindProperty("_mainMenuPanel").objectReferenceValue = canvasGO;
             serialized.ApplyModifiedProperties();
-
-            var prefabPath = "Assets/_Project/Scenes/MainMenu.unity";
-            EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene(), prefabPath);
         }
 
-        private static GameObject CreateButton(GameObject parent, string text, float yOffset, System.Action onClick)
+        private static GameObject CreateButton(GameObject parent, string text, float yOffset)
         {
             var btnGO = new GameObject("Btn_" + text);
             btnGO.transform.SetParent(parent.transform);

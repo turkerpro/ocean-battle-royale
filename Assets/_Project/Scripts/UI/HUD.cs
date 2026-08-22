@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using Fusion;
 
 namespace OceanBattleRoyale.UI
 {
@@ -25,9 +24,6 @@ namespace OceanBattleRoyale.UI
         [SerializeField] private RawImage _minimapImage;
         [SerializeField] private float _minimapSize = 200f;
         [SerializeField] private LayerMask _minimapLayers;
-        [SerializeField] private Color _playerColor = Color.green;
-        [SerializeField] private Color _enemyColor = Color.red;
-        [SerializeField] private Color _neutralColor = Color.gray;
 
         [Header("Kill Feed")]
         [SerializeField] private Transform _killFeedContainer;
@@ -87,7 +83,7 @@ namespace OceanBattleRoyale.UI
             var ships = FindObjectsOfType<NetworkedShip>();
             foreach (var ship in ships)
             {
-                if (ship.Object.HasInputAuthority)
+                if (ship.IsLocalPlayer)
                 {
                     _localShip = ship;
                     gameObject.SetActive(true);
@@ -102,10 +98,10 @@ namespace OceanBattleRoyale.UI
 
             int level = _localShip.CurrentLevel;
             int xp = _localShip.CurrentXP;
-            int xpForNext = GetXPForLevel(level + 1);
+            int xpForNext = level * 100;
 
-            if (_levelText) _levelText.text = $"SEVIYE {level}";
-            if (_xpText) _xpText.text = $"{xp} / {xpForNext} XP";
+            if (_levelText) _levelText.text = "SEVIYE " + level;
+            if (_xpText) _xpText.text = xp + " / " + xpForNext + " XP";
             if (_levelProgressBar) _levelProgressBar.value = (float)xp / xpForNext;
         }
 
@@ -117,7 +113,7 @@ namespace OceanBattleRoyale.UI
             float maxHealth = _localShip.MaxHealth;
 
             if (_healthBar) _healthBar.value = health / maxHealth;
-            if (_healthText) _healthText.text = $"{Mathf.CeilToInt(health)} / {Mathf.CeilToInt(maxHealth)}";
+            if (_healthText) _healthText.text = Mathf.CeilToInt(health) + " / " + Mathf.CeilToInt(maxHealth);
 
             if (_healthFill)
             {
@@ -167,11 +163,6 @@ namespace OceanBattleRoyale.UI
             _weaponSlots[index].Setup(icon, name, ammo, isActive);
         }
 
-        private int GetXPForLevel(int level)
-        {
-            return level * 100;
-        }
-
         private void OnDestroy()
         {
             if (_minimapRT != null) _minimapRT.Release();
@@ -190,7 +181,7 @@ namespace OceanBattleRoyale.UI
         {
             if (Icon) Icon.sprite = icon;
             if (NameText) NameText.text = name;
-            if (AmmoText) AmmoText.text = ammo >= 0 ? ammo.ToString() : "∞";
+            if (AmmoText) AmmoText.text = ammo >= 0 ? ammo.ToString() : "\u221E";
             if (ActiveIndicator) ActiveIndicator.SetActive(isActive);
         }
     }
