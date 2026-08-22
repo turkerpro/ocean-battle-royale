@@ -56,11 +56,13 @@ namespace OceanBattleRoyale.Editor
 
         private static void SetupLighting()
         {
-            RenderSettings.skybox = new Material(Shader.Find("Universal Render Pipeline/Lit"))
-            {
-                name = "OceanSkybox"
-            };
-            RenderSettings.skybox.SetColor("_BaseColor", new Color(0.4f, 0.6f, 0.8f));
+            var skyMat = new Material(Shader.Find("Skybox/Procedural"));
+            skyMat.name = "OceanSkybox";
+            skyMat.SetFloat("_SunSize", 0.04f);
+            skyMat.SetFloat("_AtmosphereThickness", 1.0f);
+            skyMat.SetColor("_SkyTint", new Color(0.5f, 0.5f, 0.5f));
+            skyMat.SetColor("_GroundColor", new Color(0.369f, 0.349f, 0.341f));
+            RenderSettings.skybox = skyMat;
             RenderSettings.ambientMode = AmbientMode.Skybox;
             RenderSettings.ambientIntensity = 1f;
 
@@ -176,7 +178,7 @@ namespace OceanBattleRoyale.Editor
             hullGO.transform.localPosition = new Vector3(0, 0.5f, 0);
             hullGO.transform.localScale = new Vector3(4f, 1f, 8f);
             var hullRenderer = hullGO.GetComponent<Renderer>();
-            var hullMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            var hullMat = new Material(Shader.Find("Standard"));
             hullMat.color = new Color(0.4f, 0.3f, 0.2f);
             hullRenderer.material = hullMat;
             Object.DestroyImmediate(hullGO.GetComponent<Collider>());
@@ -187,7 +189,7 @@ namespace OceanBattleRoyale.Editor
             turretGO.transform.localPosition = new Vector3(0, 1.5f, 0);
             turretGO.transform.localScale = new Vector3(1f, 0.5f, 1f);
             var turretRenderer = turretGO.GetComponent<Renderer>();
-            var turretMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            var turretMat = new Material(Shader.Find("Standard"));
             turretMat.color = new Color(0.5f, 0.4f, 0.3f);
             turretRenderer.material = turretMat;
             Object.DestroyImmediate(turretGO.GetComponent<Collider>());
@@ -289,7 +291,7 @@ namespace OceanBattleRoyale.Editor
             hullGO.transform.localPosition = new Vector3(0, 0.5f, 0);
             hullGO.transform.localScale = new Vector3(4f, 1f, 8f);
             var hullRenderer = hullGO.GetComponent<Renderer>();
-            var hullMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            var hullMat = new Material(Shader.Find("Standard"));
             hullMat.color = new Color(0.3f, 0.2f, 0.4f);
             hullRenderer.material = hullMat;
             Object.DestroyImmediate(hullGO.GetComponent<Collider>());
@@ -300,7 +302,7 @@ namespace OceanBattleRoyale.Editor
             turretGO.transform.localPosition = new Vector3(0, 1.5f, 0);
             turretGO.transform.localScale = new Vector3(1f, 0.5f, 1f);
             var turretRenderer = turretGO.GetComponent<Renderer>();
-            var turretMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            var turretMat = new Material(Shader.Find("Standard"));
             turretMat.color = new Color(0.4f, 0.3f, 0.5f);
             turretRenderer.material = turretMat;
             Object.DestroyImmediate(turretGO.GetComponent<Collider>());
