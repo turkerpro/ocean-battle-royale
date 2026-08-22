@@ -21,6 +21,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Free disk space
         run: |
@@ -30,18 +32,14 @@ jobs:
           docker image prune -af
           df -h
 
-      - name: Install Unity
-        uses: game-ci/unity-installer@v2
-        with:
-          unityVersion: ${{ env.UNITY_VERSION }}
-
       - name: Build WebGL
-        uses: game-ci/unity-builder@v2
+        uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
         with:
           projectPath: .
           targetPlatform: WebGL
+          unityVersion: ${{ env.UNITY_VERSION }}
           allowDirtyBuild: true
 
       - name: Upload WebGL Build
