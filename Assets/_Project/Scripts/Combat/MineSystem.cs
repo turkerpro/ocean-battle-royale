@@ -28,7 +28,6 @@ namespace OceanBattleRoyale.Combat
         public AudioClip ExplosionSound;
     }
 
-    [NetworkedBehaviour]
     public class MineSystem : NetworkBehaviour
     {
         [Header("Configuration")]
@@ -114,7 +113,6 @@ namespace OceanBattleRoyale.Combat
         public float GetCooldownRemaining() => Mathf.Max(0, _nextDeployTime - Runner.Time);
     }
 
-    [NetworkedBehaviour]
     public class Mine : NetworkBehaviour
     {
         [Networked] private float _lifeTimer { get; set; }

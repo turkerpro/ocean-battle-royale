@@ -3,7 +3,6 @@ using Fusion;
 
 namespace OceanBattleRoyale.Ship
 {
-    [NetworkedBehaviour]
     public class ShipProgression : NetworkBehaviour
     {
         [Header("Level Curve")]

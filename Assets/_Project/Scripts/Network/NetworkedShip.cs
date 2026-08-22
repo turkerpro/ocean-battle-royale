@@ -13,7 +13,6 @@ namespace OceanBattleRoyale.Network
         public byte WeaponSwitch;
     }
 
-    [NetworkedBehaviour]
     public class NetworkedShip : NetworkBehaviour
     {
         [Header("Ship Configuration")]
@@ -60,25 +59,35 @@ namespace OceanBattleRoyale.Network
 
         public override void FixedUpdateNetwork()
         {
-            if (GetInput(out ShipInput input))
+            if (Object.HasInputAuthority)
             {
-                _physics.Simulate(input, Runner.DeltaTime);
-
-                if (Object.HasInputAuthority)
+                var localController = GetComponent<LocalPlayerController>();
+                if (localController != null)
                 {
+                    var input = localController.GetNetworkInput();
+                    _physics.Simulate(input, Runner.DeltaTime);
                     transform.position = _physics.Position;
                     transform.rotation = _physics.Rotation;
                 }
-                else
+                else if (GetInput(out ShipInput input))
                 {
-                    _physics.SetTarget(transform.position, transform.rotation);
+                    _physics.Simulate(input, Runner.DeltaTime);
+                    transform.position = _physics.Position;
+                    transform.rotation = _physics.Rotation;
                 }
             }
-
-            if (Object.HasStateAuthority)
+            else if (Object.HasStateAuthority)
             {
+                if (GetInput(out ShipInput input))
+                {
+                    _physics.Simulate(input, Runner.DeltaTime);
+                }
                 transform.position = _physics.Position;
                 transform.rotation = _physics.Rotation;
+            }
+            else
+            {
+                _physics.SetTarget(transform.position, transform.rotation);
             }
         }
 

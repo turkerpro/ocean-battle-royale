@@ -1,10 +1,9 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using Fusion;
 
 namespace OceanBattleRoyale.Network
 {
-    public class LocalPlayerController : NetworkBehaviour
+    public class LocalPlayerController : MonoBehaviour
     {
         [Header("Input")]
         [SerializeField] private InputActionAsset _inputActions;
@@ -17,21 +16,20 @@ namespace OceanBattleRoyale.Network
         private InputAction _weaponSwitchAction;
 
         private NetworkedShip _networkedShip;
-        private ShipPhysics _shipPhysics;
 
-        public override void Spawned()
+        private void Awake()
         {
-            if (!Object.HasInputAuthority) return;
-
             _networkedShip = GetComponent<NetworkedShip>();
-            _shipPhysics = GetComponent<ShipPhysics>();
-
             SetupInputActions();
             SetupMobileControls();
+        }
 
-            Camera.main.transform.SetParent(transform);
-            Camera.main.transform.localPosition = new Vector3(0, 20, -30);
-            Camera.main.transform.localRotation = Quaternion.Euler(30, 0, 0);
+        private void Start()
+        {
+            if (_networkedShip != null && _networkedShip.Object.HasInputAuthority)
+            {
+                SetupCamera();
+            }
         }
 
         private void SetupInputActions()
@@ -55,11 +53,25 @@ namespace OceanBattleRoyale.Network
             }
         }
 
-        public override void FixedUpdateNetwork()
+        private void SetupCamera()
         {
-            if (!Object.HasInputAuthority) return;
+            Camera.main.transform.SetParent(transform);
+            Camera.main.transform.localPosition = new Vector3(0, 20, -30);
+            Camera.main.transform.localRotation = Quaternion.Euler(30, 0, 0);
+        }
 
-            var input = new ShipInput
+        private void OnDestroy()
+        {
+            if (_inputActions != null)
+            {
+                _inputActions.Disable();
+            }
+        }
+
+        // Called by NetworkedShip.FixedUpdateNetwork via reflection or interface
+        public ShipInput GetNetworkInput()
+        {
+            return new ShipInput
             {
                 Move = GetMoveInput(),
                 Aim = GetAimInput(),
@@ -67,27 +79,15 @@ namespace OceanBattleRoyale.Network
                 DeployMine = GetMineInput(),
                 WeaponSwitch = GetWeaponSwitchInput()
             };
-
-            if (_shipPhysics != null)
-            {
-                _shipPhysics.Simulate(input, Runner.DeltaTime);
-            }
-
-            // Send input to server
-            // Fusion handles this automatically via INetworkInput
         }
 
         private Vector2 GetMoveInput()
         {
             if (_mobileControls != null && _mobileControls.gameObject.activeInHierarchy)
-            {
                 return _mobileControls.MoveInput;
-            }
 
             if (_moveAction != null)
-            {
                 return _moveAction.ReadValue<Vector2>();
-            }
 
             return Vector2.zero;
         }
@@ -95,14 +95,10 @@ namespace OceanBattleRoyale.Network
         private Vector2 GetAimInput()
         {
             if (_mobileControls != null && _mobileControls.gameObject.activeInHierarchy)
-            {
                 return _mobileControls.AimInput;
-            }
 
             if (_aimAction != null)
-            {
                 return _aimAction.ReadValue<Vector2>();
-            }
 
             return Vector2.zero;
         }
@@ -110,14 +106,10 @@ namespace OceanBattleRoyale.Network
         private bool GetFireInput()
         {
             if (_mobileControls != null && _mobileControls.gameObject.activeInHierarchy)
-            {
                 return _mobileControls.FirePressed;
-            }
 
             if (_fireAction != null)
-            {
                 return _fireAction.IsPressed();
-            }
 
             return false;
         }
@@ -125,14 +117,10 @@ namespace OceanBattleRoyale.Network
         private bool GetMineInput()
         {
             if (_mobileControls != null && _mobileControls.gameObject.activeInHierarchy)
-            {
                 return _mobileControls.MinePressed;
-            }
 
             if (_mineAction != null)
-            {
                 return _mineAction.WasPressedThisFrame();
-            }
 
             return false;
         }
@@ -140,24 +128,12 @@ namespace OceanBattleRoyale.Network
         private byte GetWeaponSwitchInput()
         {
             if (_mobileControls != null && _mobileControls.gameObject.activeInHierarchy)
-            {
                 return _mobileControls.WeaponSwitchPressed ? (byte)1 : (byte)0;
-            }
 
             if (_weaponSwitchAction != null && _weaponSwitchAction.WasPressedThisFrame())
-            {
                 return 1;
-            }
 
             return 0;
-        }
-
-        public override void Despawned(NetworkRunner runner, bool hasState)
-        {
-            if (_inputActions != null)
-            {
-                _inputActions.Disable();
-            }
         }
     }
 }

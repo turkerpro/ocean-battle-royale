@@ -3,7 +3,6 @@ using Fusion;
 
 namespace OceanBattleRoyale.Combat
 {
-    [NetworkedBehaviour]
     public class Damageable : NetworkBehaviour
     {
         [Header("Health")]

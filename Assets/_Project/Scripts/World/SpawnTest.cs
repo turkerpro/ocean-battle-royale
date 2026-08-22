@@ -40,11 +40,7 @@ namespace OceanBattleRoyale.World
         {
             foreach (var player in Runner.ActivePlayers)
             {
-                Runner.SetPlayerAreaOfInterest(player, new InterestArea
-                {
-                    Position = Vector3.zero,
-                    Radius = _viewRadius
-                });
+                Runner.SetPlayerAreaOfInterest(player, Vector3.zero, _viewRadius);
             }
         }
 

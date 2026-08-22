@@ -33,7 +33,6 @@ namespace OceanBattleRoyale.Combat
         public AudioClip ReloadSound;
     }
 
-    [NetworkedBehaviour]
     public class WeaponSystem : NetworkBehaviour
     {
         [Header("Configuration")]
@@ -224,7 +223,6 @@ namespace OceanBattleRoyale.Combat
         public WeaponData GetWeaponData(int index) => index < _availableWeapons.Length ? _availableWeapons[index] : null;
     }
 
-    [NetworkedBehaviour]
     public class Projectile : NetworkBehaviour
     {
         [Networked] private Vector3 _velocity { get; set; }
