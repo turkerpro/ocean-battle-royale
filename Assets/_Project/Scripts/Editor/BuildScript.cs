@@ -37,7 +37,7 @@ namespace OceanBattleRoyale.Editor
         [MenuItem("Build/WebGL")]
         public static void BuildWebGL()
         {
-            PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
+            PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Disabled;
             PlayerSettings.WebGL.nameFilesAsHashes = true;
             PlayerSettings.WebGL.dataCaching = true;
             PlayerSettings.WebGL.debugSymbolMode = WebGLDebugSymbolMode.Off;
