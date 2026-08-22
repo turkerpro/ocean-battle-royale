@@ -37,11 +37,11 @@ namespace OceanBattleRoyale.Network
         {
             if (_inputActions == null) return;
 
-            _moveAction = _inputActions.FindAction("Move", "Player");
-            _aimAction = _inputActions.FindAction("Aim", "Player");
-            _fireAction = _inputActions.FindAction("Fire", "Player");
-            _mineAction = _inputActions.FindAction("DeployMine", "Player");
-            _weaponSwitchAction = _inputActions.FindAction("WeaponSwitch", "Player");
+            _moveAction = _inputActions.FindAction("Player/Move");
+            _aimAction = _inputActions.FindAction("Player/Aim");
+            _fireAction = _inputActions.FindAction("Player/Fire");
+            _mineAction = _inputActions.FindAction("Player/DeployMine");
+            _weaponSwitchAction = _inputActions.FindAction("Player/WeaponSwitch");
 
             _inputActions.Enable();
         }

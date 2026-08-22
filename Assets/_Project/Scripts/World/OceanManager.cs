@@ -114,7 +114,7 @@ namespace OceanBattleRoyale.World
             _props.SetFloat("_WaveHeight", Mathf.Lerp(2f, 0.5f, lodFactor));
             _props.SetFloat("_FoamThreshold", Mathf.Lerp(0.4f, 0.6f, lodFactor));
 
-            Graphics.SetPropertyBlock(_props, GetComponent<MeshRenderer>());
+            GetComponent<MeshRenderer>().SetPropertyBlock(_props);
         }
 
         private void ApplyQualitySettings()
