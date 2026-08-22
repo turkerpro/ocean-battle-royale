@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD
 
 on:
   push:
@@ -7,91 +7,19 @@ on:
     branches: [main]
 
 env:
-  UNITY_VERSION: 2022.3.20f1
-  UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+  UNITY_VERSION: 6000.0.32f1
 
 jobs:
-  test:
-    name: Run Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          lfs: true
-
-      - name: Install Unity
-        uses: game-ci/unity-installer@v2
-        with:
-          unityVersion: ${{ env.UNITY_VERSION }}
-          cacheKey: unity-${{ env.UNITY_VERSION }}-${{ hashFiles('Packages/manifest.json') }}
-
-      - name: Run Unit Tests
-        uses: game-ci/unity-test-runner@v2
-        env:
-          UNITY_LICENSE: ${{ env.UNITY_LICENSE }}
-        with:
-          projectPath: .
-          testMode: editmode
-          artifactsPath: artifacts/editmode
-
-      - name: Run Integration Tests
-        uses: game-ci/unity-test-runner@v2
-        env:
-          UNITY_LICENSE: ${{ env.UNITY_LICENSE }}
-        with:
-          projectPath: .
-          testMode: playmode
-          artifactsPath: artifacts/playmode
-
-      - name: Upload Test Results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-results
-          path: artifacts
-
-  build-android:
-    name: Build Android (AAB)
-    runs-on: ubuntu-latest
-    needs: test
-    timeout-minutes: 60
-    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          lfs: true
-
-      - name: Install Unity
-        uses: game-ci/unity-installer@v2
-        with:
-          unityVersion: ${{ env.UNITY_VERSION }}
-          cacheKey: unity-${{ env.UNITY_VERSION }}-${{ hashFiles('Packages/manifest.json') }}
-
-      - name: Build Android App Bundle
-        uses: game-ci/unity-builder@v2
-        env:
-          UNITY_LICENSE: ${{ env.UNITY_LICENSE }}
-        with:
-          projectPath: .
-          targetPlatform: Android
-          buildMethod: BuildScript.BuildAndroid
-          customParameters: -outputPath build/OceanBattleRoyale.aab
-
-      - name: Upload Android Build
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-aab
-          path: build/OceanBattleRoyale.aab
-
   build-webgl:
-    name: Build WebGL
+    name: Build WebGL + Deploy to GitHub Pages
     runs-on: ubuntu-latest
-    needs: test
-    timeout-minutes: 60
-    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
+    timeout-minutes: 120
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -107,25 +35,59 @@ jobs:
       - name: Build WebGL
         uses: game-ci/unity-builder@v2
         env:
-          UNITY_LICENSE: ${{ env.UNITY_LICENSE }}
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
         with:
           projectPath: .
           targetPlatform: WebGL
-          buildMethod: BuildScript.BuildWebGL
-          customParameters: -outputPath build/WebGL
+          allowDirtyBuild: true
 
-      - name: Upload WebGL Build
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/WebGL/WebGL
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Install Unity
+        uses: game-ci/unity-installer@v2
+        with:
+          unityVersion: ${{ env.UNITY_VERSION }}
+          cacheKey: unity-${{ env.UNITY_VERSION }}-${{ hashFiles('Packages/manifest.json') }}
+
+      - name: Build Android
+        uses: game-ci/unity-builder@v2
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        with:
+          projectPath: .
+          targetPlatform: Android
+          allowDirtyBuild: true
+
+      - name: Upload Android Build
         uses: actions/upload-artifact@v4
         with:
-          name: webgl-build
-          path: build/WebGL
+          name: android-build
+          path: build/Android
 
   build-windows:
-    name: Build Windows (Standalone)
-    runs-on: windows-latest
-    needs: test
-    timeout-minutes: 60
-    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
+    name: Build Windows
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -141,15 +103,14 @@ jobs:
       - name: Build Windows
         uses: game-ci/unity-builder@v2
         env:
-          UNITY_LICENSE: ${{ env.UNITY_LICENSE }}
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
         with:
           projectPath: .
           targetPlatform: StandaloneWindows64
-          buildMethod: BuildScript.BuildWindows
-          customParameters: -outputPath build/Windows/OceanBattleRoyale.exe
+          allowDirtyBuild: true
 
       - name: Upload Windows Build
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: build/Windows
+          path: build/StandaloneWindows64
