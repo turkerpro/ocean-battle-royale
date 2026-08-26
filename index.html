@@ -328,15 +328,17 @@ function makeShip(tier,isPlayer,name){
   const T=CFG.tiers[tier];
   const mesh=buildShipMesh(tier,isPlayer);
   scene.add(mesh);
-  return {
+  const sh={
     mesh, tier, isPlayer, name,
     hp:T.hp, maxHp:T.hp,
     speed:T.speed, dmg:T.dmg, fireRate:T.fireRate, range:T.range, bSpd:T.bSpd, bSize:T.bSize,
     xp:0, alive:true, fireCD:rand(0,1), shield:isPlayer?3:2, flash:0,
     lastDmg:-99, mineCD:rand(4,10), heading:rand(0,TAU), lastAttacker:null,
     ai:{state:'roam', tgt:null, retarget:0, strafe:Math.random()<0.5?1:-1, nearest:null, isCrate:false},
-    wakeT:0
+    wakeT:0, hpBg:null, hpFg:null
   };
+  if(!isPlayer)makeHpBar(sh);
+  return sh;
 }
 function applyTier(sh,tier){
   const T=CFG.tiers[tier];
@@ -348,6 +350,34 @@ function applyTier(sh,tier){
   sh.mesh=buildShipMesh(tier,sh.isPlayer);
   sh.mesh.position.copy(pos); sh.mesh.rotation.y=rot;
   scene.add(sh.mesh);
+  removeHpBar(sh);
+  if(!sh.isPlayer)makeHpBar(sh);
+}
+
+// ---------- CAN BARLARI (gemi ustu, kameraya bakan) ----------
+function makeHpBar(sh){
+  const s=CFG.tiers[sh.tier].size;
+  const bg=new THREE.Mesh(new THREE.PlaneGeometry(2.6*s,0.34*s),
+    new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.55,depthWrite:false}));
+  const fg=new THREE.Mesh(new THREE.PlaneGeometry(2.5*s,0.22*s),
+    new THREE.MeshBasicMaterial({color:0x4ade80,depthWrite:false}));
+  scene.add(bg); scene.add(fg);
+  sh.hpBg=bg; sh.hpFg=fg;
+}
+function updateHpBar(sh){
+  const s=CFG.tiers[sh.tier].size;
+  const p=sh.mesh.position, y=p.y+2.6*s;
+  sh.hpBg.position.set(p.x,y,p.z);
+  sh.hpBg.quaternion.copy(camera.quaternion);
+  const r=clamp(sh.hp/sh.maxHp,0,1);
+  sh.hpFg.position.set(p.x-(1-r)*1.25*s,y,p.z+0.01);
+  sh.hpFg.quaternion.copy(camera.quaternion);
+  sh.hpFg.scale.x=r;
+  sh.hpFg.material.color.setHex(r>0.5?0x4ade80:(r>0.25?0xfacc15:0xf87171));
+}
+function removeHpBar(sh){
+  if(sh.hpBg){scene.remove(sh.hpBg);sh.hpBg.material.dispose();sh.hpBg=null;}
+  if(sh.hpFg){scene.remove(sh.hpFg);sh.hpFg.material.dispose();sh.hpFg=null;}
 }
 
 // ---------- CRATES ----------
@@ -475,6 +505,7 @@ function damage(sh,amount,srcPos){
 function killShip(sh){
   sh.alive=false;
   scene.remove(sh.mesh);
+  removeHpBar(sh);
   explode(sh.mesh.position,sh.tier>=3);
   for(let i=0;i<3+sh.tier;i++)spawnCrate(sh.mesh.position);
   const killer=sh.lastAttacker;
@@ -511,7 +542,7 @@ function showMsg(t,dur){
 
 // ---------- GAME FLOW ----------
 function startGame(){
-  bots.forEach(b=>scene.remove(b.mesh));
+  bots.forEach(b=>{scene.remove(b.mesh);removeHpBar(b);});
   bullets.forEach(b=>scene.remove(b.mesh));
   mines.forEach(m=>scene.remove(m.mesh));
   crates.forEach(c=>scene.remove(c.mesh));
@@ -916,6 +947,7 @@ function loop(){
       }
       if(gameTime-sh.lastDmg>CFG.regenDelay&&sh.hp<sh.maxHp)
         sh.hp=Math.min(sh.maxHp,sh.hp+CFG.regenPS*dt);
+      if(!sh.isPlayer&&sh.hpBg)updateHpBar(sh);
       shipBob(sh);
       wake(sh,dt);
       // hiz takibi (bot mermi ongorusu icin)
