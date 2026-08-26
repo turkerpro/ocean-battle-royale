@@ -1,63 +1,34 @@
 # Ocean Battle Royale
 
-3D Multiplayer Ocean Battle Royale - Low Poly, 50+ Players, Photon Fusion, PlayFab
+Tarayıcıda çalışan, agar.io × battle royale karışımı 3D deniz savaşı oyunu.
+Unity yerine **Three.js** ile yazıldı — kurulum yok, indirme yok, direkt oyna.
 
-## Tech Stack
-- **Engine**: Unity 2022.3 LTS
-- **Networking**: Photon Fusion 2 (Shared Mode)
-- **Backend**: PlayFab (Free Tier)
-- **Rendering**: URP + Custom Ocean Shader
-- **Platforms**: Android, WebGL, Windows
+**Oyna:** https://turkerpro.github.io/ocean-battle-royale/
 
-## Project Structure
-```
-Assets/_Project/
-├── Scripts/
-│   ├── Core/           # GameManager, NetworkManager
-│   ├── Network/        # NetworkedShip, Input handling
-│   ├── Ship/           # ShipPhysics, progression
-│   ├── Combat/         # Weapons, mines, damage
-│   ├── World/          # Ocean, spawn, boundaries
-│   └── UI/             # HUD, mobile controls, shop
-├── Shaders/            # OceanShader (Gerritsen waves)
-├── Scenes/             # MainMenu, Prototype, Gameplay
-├── Resources/          # Settings, Prefabs
-└── ScriptableObjects/  # Data configs
-```
+## Oyun Mekanikleri
+- **5 gemi katı:** Sandal → Tekne → Korvet → Firkateyn → Zırhlı (her biri farklı model + top sayısı)
+- **Sandık toplama:** Altın sandık XP, yeşil sandık can verir (agar.io çekirdek döngüsü)
+- **Daralan bölge:** Klasik BR — dışarıda kalırsan hasar alırsın
+- **29 bot:** Durum makinesi AI (gezinme / saldırı / kaçış), sandık toplar, seviye atlar, mayın döşer
+- **Mayın:** Düşman yaklaşınca patlar, ölümlü
+- **Zafer koşulu:** Son hayatta kalan gemi kazanır
 
-## Development Phases
-- **Phase 0** (Week 1): Setup, Network, Physics, Ocean, 50-bot test
-- **Phase 1** (Week 2-3): Network Foundation, Lobby, Movement
-- **Phase 2** (Week 4-5): Ship System, Progression, Tier Upgrades
-- **Phase 3** (Week 6-7): Combat Core, Weapons, Mines
-- **Phase 4** (Week 8-9): World, Polish, Mobile UI, VFX/SFX
-- **Phase 5** (Week 10): Cosmetic Shop, IAP
-- **Phase 6** (Week 11-12): Scale Test, Launch Prep
+## Teknik
+- Tek dosya: `index.html` (Three.js r128 CDN)
+- Custom GLSL su shader'ı (dalga + köpük + parıltı), gemiler dalgalara göre zıplar
+- Web Audio API ile sentezlenmiş ses efektleri (asset yok)
+- Canvas sprite hasar sayıları, billboard can barları, ekran sarsıntısı, izler
+- Highscore `localStorage`'da
 
-## Getting Started
-1. Open in Unity 2022.3.20f1+
-2. Add Photon AppId to `Assets/_Project/Resources/PhotonAppSettings.asset`
-3. Add PlayFab TitleId to `Assets/_Project/Resources/PlayFabSettings.asset`
-4. Open `Scenes/Prototype.unity` and press Play
+## Kontroller
+| Tuş | İşlev |
+|---|---|
+| WASD / Oklar | Dümen + gaz |
+| Fare + Sol Tık | Nişan + ateş |
+| SPACE | Mayın döşe |
+| 1-5 | Açılmış gemi katına geç |
+| Fare Tekerleği | Zoom |
+| P | Duraklat |
 
-## Build Commands
-```bash
-# Android (AAB)
-Unity -batchmode -executeMethod BuildScript.BuildAndroid
-
-# WebGL
-Unity -batchmode -executeMethod BuildScript.BuildWebGL
-
-# Windows
-Unity -batchmode -executeMethod BuildScript.BuildWindows
-```
-
-## CI/CD
-GitHub Actions workflow in `.github/workflows/ci.yml` runs on every push:
-- Unit + Integration tests
-- Android AAB build
-- WebGL build
-- Windows Standalone build
-
-## License
-MIT
+## Deploy
+`main`'e push → GitHub Actions statik deploy → GitHub Pages. Başka hiçbir şey gerekmez.
